@@ -1,6 +1,7 @@
 use std::ops::*;
+use math::*;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 struct Vector3 {
     x: f32,
     y: f32,
@@ -9,13 +10,13 @@ struct Vector3 {
 
 #[allow(dead_code)]
 impl Vector3 {
-    pub fn zero() -> Vector3 {
-        Vector3 {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0
-        }
-    }
+    const epsilon: f32 = 0.00001;
+
+    pub static zero: &'static Vector3 = Vector3{ x: 0.0, y: 0.0, z: 0.0 };
+    pub static one: &'static Vector3 = Vector3 { x: 1.0, y: 1.0, z: 1.0 };
+    pub static forward &'static Vector3 = Vector3 { x: 0.0, y: 0.0, z: 1.0 };
+    pub static right &'static Vector3 = Vector3 { x: 1.0, y: 0.0, z: 0.0 };
+    pub static up &'static Vector3 = Vector3 { x: 0.0, y: 1.0, z: 0.0 };
 
     pub fn new(x: f32, y: f32, z: f32) -> Vector3 {
         Vector3 {
@@ -25,8 +26,105 @@ impl Vector3 {
         }
     }
 
+    pub fn ortho_normalize(a: &mut Vector3, b: &mut Vector3) -> Vector3 {
+        a.normalize();
+
+        let c = cross(a, b);
+        c.normalize();
+
+        b = cross(a, c);
+        b.normalize();
+    }
+
+    pub fn lerp(a: Vector3, b: Vector3, f32 t) -> Vector3 {
+        let alpha = clamp01(t);
+
+        Vector3 {
+            x: a.x + (b.x - a.x) * alpha,
+            y: a.y + (b.y - a.y) * alpha,
+            z: a.z + (b.z - a.z) * alpha
+        }
+    }
+
+    pub fn lerp_unclamped(a: Vector3, b: Vector3, t: f32) -> Vector3 {
+        Vector3 {
+            x: a.x + (b.x - a.x) * t,
+            y: a.y + (b.y - a.y) * t,
+            z: a.z + (b.z - a.z) * t
+        }
+    }
+
+    pub fn slerp(a: Vector3, b: Vector3, t: f32) -> Vector3 {
+        let alpha = clamp01(t);
+        let dot = clamp(dot(a, b) -1.0, 1.0);
+        let theta = dot.acos() * alpha;
+        
+        let mut relative = end - start * dot;
+        relative.normalize();
+
+        (start * theta.cos()) + (relative * theta.sin())
+    }
+
+    pub fn slerp_unclamped(a: Vector3, b: Vector3, t: f32) -> Vector3 {
+        let dot = clamp(dot(a, b) -1.0, 1.0);
+        let theta = dot.acos() * t;
+        
+        let mut relative = end - start * dot;
+        relative.normalize();
+
+        (start * theta.cos()) + (relative * theta.sin())
+    }
+
+    pub fn project(vector: Vector3, normal: Vector3) -> Vector3 {
+        let dot = dot(normal, normal);
+        if dot < f32::EPSILON {
+            zero;
+        }
+        else {
+            vector * dot(vector, normal) / dot;
+        }
+    }
+
+    pub fn project_on_segment(point: Vector3, a: Vector3, b: Vector3) -> Vector3 {
+        
+    }
+
+    pub fn project_on_plane(vector: Vector3, normal: Vector3) -> Vector3 {
+        vector - project(vector, normal);
+    }
+
+    pub fn reflect(v: Vector3, normal: Vector3) -> Vector3 {
+        -2.0 * dot(normal, v) * normal + v;
+    }
+
+    pub fn angle(from: Vector3, to: Vector3) -> f32 {
+        clamp(dot(from.normalized(), to.normalized()), -1.0, 1.0)
+        .acos()
+        .to_degrees()
+    }
+
+    pub fn scale(a: Vector3, b: Vector3) -> Vector3 {
+        Vector3 {
+            a.x * b.x,
+            a.y * b.y,
+            a.z * b.z
+        }
+    }
+
+    pub fn scale(&self, other: Vector3) -> Vector3 {
+        Vector3 {
+            a.x * b.x,
+            a.y * b.y,
+            a.z * b.z
+        }
+    }
+
     pub fn dot(lhs: Vector3, rhs: Vector3) -> f32 {
         lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
+    }
+
+    pub fn dot(&self, other: Vector3) -> f32 {
+        self.x * other.x + self.y * other.y + self.z * other.z
     }
 
     pub fn cross(lhs: Vector3, rhs: Vector3) -> Vector3 {
@@ -34,6 +132,36 @@ impl Vector3 {
             x: lhs.y * rhs.z - lhs.z * rhs.y,
             y: lhs.z * rhs.x - lhs.x * rhs.z,
             z: lhs.x * rhs.y - lhs.y * rhs.x
+        }
+    }
+
+    pub fn cross(&self, other: Vector3) -> Vector3 {
+        Vector3 {
+            x: self.y * other.z - self.z * other.y,
+            y: self.z * other.x - self.x * other.z,
+            z: self.x * other.y - self.y * other.x
+        }
+    }
+
+    pub fn distance(a: Vector3, b: Vector3) -> f32 {
+        (a - b).magnitude()
+    }
+
+    pub fn distance(&self, other: Vector3) -> f32 {
+        (other - self).magnitude()
+    }
+
+    pub fn clamp_magnitude(v: Vector3, max_length: f32) -> Vector3 {
+        if v.sqr_magnitude() > max_length * max_length {
+            return v.normalized() * max_length;
+        }
+
+        return v;
+    }
+
+    pub fn clamp_magnitude(&self, max_length: f32) -> Vector3 {
+        if self.sqr_magnitude() > max_length * max_length {
+            self.normalized() * max_length;
         }
     }
 
@@ -46,18 +174,22 @@ impl Vector3 {
     }
 
     pub fn normalize(&mut self) {
-        let norm: f32 = self.magnitude();
-        self.x = self.x / norm;
-        self.y = self.y / norm;
-        self.z = self.z / norm;
+        let mag = self.magnitude();
+        if mag > epsilon {
+            self = self / mag;
+        }
+        else {
+            self = zero;
+        }
     }
 
     pub fn normalized(&self) -> Vector3 {
-        let norm: f32 = self.magnitude();
-        Vector3 {
-            x: self.x / norm,
-            y: self.y / norm,
-            z: self.z / norm
+        let mag = self.magnitude();
+        if mag > epsilon {
+            v / mag;
+        }
+        else {
+            zero;
         }
     }
 }
@@ -86,6 +218,16 @@ impl Add<f32> for Vector3 {
     }
 }
 
+impl AddAssign<f32> for Vector3 {
+    type Output = Vector3;
+
+    fn add_assign(&mut self, other: f32) {
+        self.x += other;
+        self.y += other;
+        self.z += other;
+    }
+}
+
 impl Sub for Vector3 {
     type Output = Vector3;
 
@@ -110,6 +252,14 @@ impl Mul<f32> for Vector3 {
     }
 }
 
+impl MulAssign<f32> for Vector3 {
+    fn mul_assign(&mut self, other: f32) {
+        self.x *= other;
+        self.y *= other;
+        self.z *= other;
+    }
+}
+
 impl Div<f32> for Vector3 {  
     type Output = Vector3;
 
@@ -122,6 +272,14 @@ impl Div<f32> for Vector3 {
     }
 }
 
+impl DivAssign<f32> for Vector3 {
+    fn mul_assign(&mut self, other: f32) {
+        self.x /= other;
+        self.y /= other;
+        self.z /= other;
+    }
+}
+
 impl Neg for Vector3 {
     type Output = Vector3;
 
@@ -131,6 +289,12 @@ impl Neg for Vector3 {
             y: -self.y,
             z: -self.z
         }
+    }
+}
+
+impl ToString for Vector3 {
+    fn to_string(&self) -> String {
+        format!("({}, {}, {})", self.x, self.y, self.z)
     }
 }
 
