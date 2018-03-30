@@ -25,7 +25,82 @@ impl Vector3 {
             z: z
         }
     }
+    
+    pub fn clamp_magnitude(&self, max_length: f32) -> Vector3 {
+        if self.sqr_magnitude() > max_length * max_length {
+            self.normalized() * max_length;
+        }
+    }
 
+    pub fn sqr_magnitude(&self) -> f32 {
+        self.x * self.x + self.y * self.y + self.z * self.z
+    }
+
+    pub fn magnitude(&self) -> f32 {
+        (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
+    }
+
+    pub fn normalize(&mut self) {
+        let mag = self.magnitude();
+        if mag > epsilon {
+            self = self / mag;
+        }
+        else {
+            self = zero;
+        }
+    }
+
+    pub fn normalized(&self) -> Vector3 {
+        let mag = self.magnitude();
+        if mag > epsilon {
+            v / mag;
+        }
+        else {
+            zero;
+        }
+    }
+}
+
+// Functions
+impl Vector3 {
+    pub fn dot(lhs: Vector3, rhs: Vector3) -> f32 {
+        lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
+    }
+
+    pub fn cross(lhs: Vector3, rhs: Vector3) -> Vector3 {
+        Vector3 {
+            x: lhs.y * rhs.z - lhs.z * rhs.y,
+            y: lhs.z * rhs.x - lhs.x * rhs.z,
+            z: lhs.x * rhs.y - lhs.y * rhs.x
+        }
+    }
+    
+    pub fn distance(a: Vector3, b: Vector3) -> f32 {
+        (a - b).magnitude()
+    }
+
+    pub fn angle(from: Vector3, to: Vector3) -> f32 {
+        clamp(dot(from.normalized(), to.normalized()), -1.0, 1.0)
+        .acos()
+        .to_degrees()
+    }
+
+    pub fn scale(a: Vector3, b: Vector3) -> Vector3 {
+        Vector3 {
+            a.x * b.x,
+            a.y * b.y,
+            a.z * b.z
+        }
+    }
+
+    pub fn clamp_magnitude(v: Vector3, max_length: f32) -> Vector3 {
+        if v.sqr_magnitude() > max_length * max_length {
+            v.normalized() * max_length
+        }
+
+        v
+    }
+    
     pub fn ortho_normalize(a: &mut Vector3, b: &mut Vector3) -> Vector3 {
         a.normalize();
 
@@ -84,9 +159,12 @@ impl Vector3 {
             vector * dot(vector, normal) / dot;
         }
     }
-
-    pub fn project_on_segment(point: Vector3, a: Vector3, b: Vector3) -> Vector3 {
+    
+    pub fn project_on_segment(point: Vector3, start: Vector3, end: Vector3) -> Vector3 {
+        let segment = end - start;
+        let proj_point = point.project(segment.normalized());
         
+        clamp_magnitude(proj_point - start, segment.magnitude());
     }
 
     pub fn project_on_plane(vector: Vector3, normal: Vector3) -> Vector3 {
@@ -96,43 +174,12 @@ impl Vector3 {
     pub fn reflect(v: Vector3, normal: Vector3) -> Vector3 {
         -2.0 * dot(normal, v) * normal + v;
     }
+}
 
-    pub fn angle(from: Vector3, to: Vector3) -> f32 {
-        clamp(dot(from.normalized(), to.normalized()), -1.0, 1.0)
-        .acos()
-        .to_degrees()
-    }
-
-    pub fn scale(a: Vector3, b: Vector3) -> Vector3 {
-        Vector3 {
-            a.x * b.x,
-            a.y * b.y,
-            a.z * b.z
-        }
-    }
-
-    pub fn scale(&self, other: Vector3) -> Vector3 {
-        Vector3 {
-            a.x * b.x,
-            a.y * b.y,
-            a.z * b.z
-        }
-    }
-
-    pub fn dot(lhs: Vector3, rhs: Vector3) -> f32 {
-        lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
-    }
-
+// Fluent API
+impl Vector3 {
     pub fn dot(&self, other: Vector3) -> f32 {
         self.x * other.x + self.y * other.y + self.z * other.z
-    }
-
-    pub fn cross(lhs: Vector3, rhs: Vector3) -> Vector3 {
-        Vector3 {
-            x: lhs.y * rhs.z - lhs.z * rhs.y,
-            y: lhs.z * rhs.x - lhs.x * rhs.z,
-            z: lhs.x * rhs.y - lhs.y * rhs.x
-        }
     }
 
     pub fn cross(&self, other: Vector3) -> Vector3 {
@@ -142,55 +189,56 @@ impl Vector3 {
             z: self.x * other.y - self.y * other.x
         }
     }
-
-    pub fn distance(a: Vector3, b: Vector3) -> f32 {
-        (a - b).magnitude()
-    }
-
+    
     pub fn distance(&self, other: Vector3) -> f32 {
-        (other - self).magnitude()
+        (self - other).magnitude()
     }
 
-    pub fn clamp_magnitude(v: Vector3, max_length: f32) -> Vector3 {
-        if v.sqr_magnitude() > max_length * max_length {
-            return v.normalized() * max_length;
-        }
+    pub fn angle(&self, other: Vector3) -> f32 {
+        clamp(dot(self.normalized(), other.normalized()), -1.0, 1.0)
+        .acos()
+        .to_degrees()
+    }
 
-        return v;
+    pub fn scale(&self, other: Vector3) -> Vector3 {
+        Vector3 {
+            self.x * other.x,
+            self.y * other.y,
+            self.z * other.z
+        }
     }
 
     pub fn clamp_magnitude(&self, max_length: f32) -> Vector3 {
         if self.sqr_magnitude() > max_length * max_length {
-            self.normalized() * max_length;
+            self.normalized() * max_length
         }
+
+        self
     }
 
-    pub fn sqr_magnitude(&self) -> f32 {
-        self.x * self.x + self.y * self.y + self.z * self.z
-    }
-
-    pub fn magnitude(&self) -> f32 {
-        (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
-    }
-
-    pub fn normalize(&mut self) {
-        let mag = self.magnitude();
-        if mag > epsilon {
-            self = self / mag;
-        }
-        else {
-            self = zero;
-        }
-    }
-
-    pub fn normalized(&self) -> Vector3 {
-        let mag = self.magnitude();
-        if mag > epsilon {
-            v / mag;
-        }
-        else {
+    pub fn project(&self, normal: Vector3) -> Vector3 {
+        let dot = dot(normal, normal);
+        if dot < f32::EPSILON {
             zero;
         }
+        else {
+            self * dot(self, normal) / dot;
+        }
+    }
+    
+    pub fn project_on_segment(&self, start: Vector3, end: Vector3) -> Vector3 {
+        let segment = end - start;
+        let proj_point = self.project(segment.normalized());
+        
+        clamp_magnitude(proj_point - start, segment.magnitude());
+    }
+
+    pub fn project_on_plane(&self, normal: Vector3) -> Vector3 {
+        self - project(self, normal);
+    }
+
+    pub fn reflect(&self, normal: Vector3) -> Vector3 {
+        -2.0 * dot(normal, self) * normal + self;
     }
 }
 
