@@ -1,6 +1,6 @@
-use std::ops:*;
+use std::ops::*;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 struct Quaternion {
     x: f32,
     y: f32,
@@ -8,13 +8,14 @@ struct Quaternion {
     w: f32
 }
 
+#[allow(dead_code)]
 impl Quaternion {
     pub fn identity() -> Quaternion {
         Quaternion {
-            0.0,
-            0.0,
-            0.0,
-            1.0
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0
         }
     }
 
@@ -27,15 +28,7 @@ impl Quaternion {
         }
     }
 
-    pub fn new (v: Vector3, w: f32) -> Quaternion {
-        Quaternion {
-            x: v.x,
-            y: v.y,
-            z: v.z,
-            w: w
-        }
-    }
-
+    /*
     pub fn from_direction(forward: Vector3) -> Quaternion {
 
     }
@@ -58,7 +51,7 @@ impl Quaternion {
 
     pub fn to_angle_axis(&self, &mut outAngle, &mut outAxis) {
 
-    }
+    }*/
 
     pub fn dot(a: Quaternion, b: Quaternion) -> f32 {
         a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
@@ -73,9 +66,10 @@ impl Quaternion {
         }
     }
 
+    /*
     pub fn inverse(&self) -> Quaternion {
         self.conjugate() / self.sqr_norm();
-    }
+    }*/
 
     pub fn norm(&self) -> f32 {
         (self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w).sqrt()
@@ -87,6 +81,8 @@ impl Quaternion {
 }
 
 impl Mul for Quaternion {
+    type Output = Quaternion;
+    
     fn mul(self, other: Quaternion) -> Quaternion {
         Quaternion {
             x: self.w * other.x + self.x * other.w + self.y * other.z - self.z * other.y,
@@ -97,12 +93,13 @@ impl Mul for Quaternion {
     }
 }
 
+/*
 impl Mul<Vector3> for Quaternion {
+    type Output = Vector3;
+    
     fn mul(self, other: Vector3) -> Quaternion {
         let x = self.x * 2.0;
         let y = self.y * 2.0;
         let z = self.z * 2.0;
-
-        
     }
-}
+}*/

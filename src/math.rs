@@ -1,26 +1,35 @@
+pub trait Clamp {
+    fn clamp(self, min: Self, max: Self) -> Self;
+}
 
-mod math {
-    pub fn clamp(value: f32, min: f32, max: f32) -> f32 {
-        if value < min {
-            min
+pub trait Clamp01 {
+    fn clamp01(self) -> Self;
+}
+
+impl Clamp for f32 {
+    fn clamp(self, min: f32, max: f32) -> f32 {
+        if self < min {
+            return min;
         } 
-        
-        if value > max {
-            max
+
+        if self > max {
+            return max;
         }
 
-        value
+        self
     }
+}
 
-    pub fn clamp01(value: f32) -> f32 {
-        if value < 0.0 {
-            0.0
+impl Clamp01 for f32 {
+    fn clamp01(self) -> f32 {
+        if self < 0.0 {
+            return 0.0;
         } 
-        
-        if value > 1.0 {
-            1.0
+
+        if self > 1.0 {
+            return 1.0;
         }
 
-        value
+        self
     }
 }

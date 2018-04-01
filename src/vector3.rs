@@ -1,7 +1,8 @@
 use std::ops::*;
-use math;
+use std::f32::EPSILON;
+use math::*;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 struct Vector3 {
     x: f32,
     y: f32,
@@ -10,11 +11,11 @@ struct Vector3 {
 
 #[allow(dead_code)]
 impl Vector3 {
-    pub static zero: &'static Vector3 = Vector3{ x: 0.0, y: 0.0, z: 0.0 };
-    pub static one: &'static Vector3 = Vector3 { x: 1.0, y: 1.0, z: 1.0 };
-    pub static forward &'static Vector3 = Vector3 { x: 0.0, y: 0.0, z: 1.0 };
-    pub static right &'static Vector3 = Vector3 { x: 1.0, y: 0.0, z: 0.0 };
-    pub static up &'static Vector3 = Vector3 { x: 0.0, y: 1.0, z: 0.0 };
+    const ZERO: Vector3 = Vector3{ x: 0.0, y: 0.0, z: 0.0 };
+    const ONE: Vector3 = Vector3 { x: 1.0, y: 1.0, z: 1.0 };
+    const FORWARD: Vector3 = Vector3 { x: 0.0, y: 0.0, z: 1.0 };
+    const RIGHT: Vector3 = Vector3 { x: 1.0, y: 0.0, z: 0.0 };
+    const UP: Vector3 = Vector3 { x: 0.0, y: 1.0, z: 0.0 };
 
     pub fn new(x: f32, y: f32, z: f32) -> Vector3 {
         Vector3 {
@@ -34,142 +35,23 @@ impl Vector3 {
 
     pub fn normalize(&mut self) {
         let mag = self.magnitude();
-        if mag > f32::EPSILON {
-            self = self / mag;
+        if mag > EPSILON {
+            *self = *self / mag;
         }
         else {
-            self = Vector3::zero;
+            *self = Vector3::ZERO;
         }
     }
 
     pub fn normalized(&self) -> Vector3 {
         let mag = self.magnitude();
-        if mag > f32::EPSILON {
-            self / mag
+        if mag > EPSILON {
+            return *self / mag;
         }
-        else {
-            Vector3::zero
-        }
-    }
-}
-
-// Functions
-impl Vector3 {
-    pub fn dot(lhs: Vector3, rhs: Vector3) -> f32 {
-        lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
-    }
-
-    pub fn cross(lhs: Vector3, rhs: Vector3) -> Vector3 {
-        Vector3 {
-            x: lhs.y * rhs.z - lhs.z * rhs.y,
-            y: lhs.z * rhs.x - lhs.x * rhs.z,
-            z: lhs.x * rhs.y - lhs.y * rhs.x
-        }
-    }
-    
-    pub fn distance(a: Vector3, b: Vector3) -> f32 {
-        (a - b).magnitude()
-    }
-
-    pub fn angle(from: Vector3, to: Vector3) -> f32 {
-        math::clamp(Vector3::dot(from.normalized(), to.normalized()), -1.0, 1.0)
-        .acos()
-    }
-
-    pub fn scale(a: Vector3, b: Vector3) -> Vector3 {
-        Vector3 {
-            a.x * b.x,
-            a.y * b.y,
-            a.z * b.z
-        }
-    }
-
-    pub fn clamp_magnitude(v: Vector3, max_length: f32) -> Vector3 {
-        if v.sqr_magnitude() > max_length * max_length {
-            v.normalized() * max_length
-        }
-
-        v
-    }
-    
-    pub fn ortho_normalize(a: &mut Vector3, b: &mut Vector3) -> Vector3 {
-        a.normalize();
-
-        let c = Vector3::cross(a, b);
-        c.normalize();
-
-        b = Vector3::cross(a, c);
-        b.normalize();
-    }
-
-    pub fn lerp(a: Vector3, b: Vector3, f32 t) -> Vector3 {
-        let alpha = math::clamp01(t);
-
-        Vector3 {
-            x: a.x + (b.x - a.x) * alpha,
-            y: a.y + (b.y - a.y) * alpha,
-            z: a.z + (b.z - a.z) * alpha
-        }
-    }
-
-    pub fn lerp_unclamped(a: Vector3, b: Vector3, t: f32) -> Vector3 {
-        Vector3 {
-            x: a.x + (b.x - a.x) * t,
-            y: a.y + (b.y - a.y) * t,
-            z: a.z + (b.z - a.z) * t
-        }
-    }
-
-    pub fn slerp(start: Vector3, end: Vector3, t: f32) -> Vector3 {
-        let alpha = math::clamp01(t);
-        let dot = math::clamp(Vector3::dot(start, end) -1.0, 1.0);
-        let theta = dot.acos() * alpha;
         
-        let mut relative = end - start * dot;
-        relative.normalize();
-
-        (start * theta.cos()) + (relative * theta.sin())
+        Vector3::ZERO
     }
 
-    pub fn slerp_unclamped(start: Vector3, end: Vector3, t: f32) -> Vector3 {
-        let dot = math::clamp(Vector3::dot(start, end) -1.0, 1.0);
-        let theta = dot.acos() * t;
-        
-        let mut relative = end - start * dot;
-        relative.normalize();
-
-        (start * theta.cos()) + (relative * theta.sin())
-    }
-
-    pub fn project(vector: Vector3, normal: Vector3) -> Vector3 {
-        let dot = Vector3::dot(normal, normal);
-        if dot < f32::EPSILON {
-            Vector3::zero
-        }
-        else {
-            vector * Vector3::dot(vector, normal) / dot
-        }
-    }
-    
-    pub fn project_on_segment(point: Vector3, start: Vector3, end: Vector3) -> Vector3 {
-        let segment = end - start;
-        let proj_point = Vector3::project(point, segment.normalized());
-        
-        Vector3::clamp_magnitude(proj_point - start, segment.magnitude())
-    }
-
-    pub fn project_on_plane(vector: Vector3, normal: Vector3) -> Vector3 {
-        vector - Vector3::project(vector, normal)
-    }
-
-    pub fn reflect(v: Vector3, normal: Vector3) -> Vector3 {
-        -2.0 * Vector3::dot(normal, v) * normal + v
-    }
-}
-
-/*
-// Fluent API
-impl Vector3 {
     pub fn dot(&self, other: Vector3) -> f32 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
@@ -183,37 +65,93 @@ impl Vector3 {
     }
     
     pub fn distance(&self, other: Vector3) -> f32 {
-        (self - other).magnitude()
+        (*self - other).magnitude()
     }
 
     pub fn angle(&self, other: Vector3) -> f32 {
-        clamp(dot(self.normalized(), other.normalized()), -1.0, 1.0)
-        .acos()
+        self.normalized()
+            .dot(other.normalized())
+            .clamp(-1.0, 1.0)
+            .acos()
     }
 
     pub fn scale(&self, other: Vector3) -> Vector3 {
         Vector3 {
-            self.x * other.x,
-            self.y * other.y,
-            self.z * other.z
+            x: self.x * other.x,
+            y: self.y * other.y,
+            z: self.z * other.z
         }
     }
 
     pub fn clamp_magnitude(&self, max_length: f32) -> Vector3 {
         if self.sqr_magnitude() > max_length * max_length {
-            self.normalized() * max_length
+            return self.normalized() * max_length
         }
+        
+        *self
+    }
+    
+    pub fn ortho_normalize(&mut self, other: &mut Vector3) {
+        self.normalize();
 
-        self
+        let mut c = self.cross(*other);
+        c.normalize();
+
+        *other = self.cross(*other);
+        other.normalize();
+    }
+
+    
+    pub fn lerp_to(&self, end: Vector3, t: f32) -> Vector3 {
+        let alpha = t.clamp01();
+
+        Vector3 {
+            x: self.x + (end.x - self.x) * alpha,
+            y: self.y + (end.y - self.y) * alpha,
+            z: self.z + (end.z - self.z) * alpha
+        }
+    }
+
+    pub fn lerp_to_unclamped(&self, end: Vector3, t: f32) -> Vector3 {
+        Vector3 {
+            x: self.x + (end.x - self.x) * t,
+            y: self.y + (end.y - self.y) * t,
+            z: self.z + (end.z - self.z) * t
+        }
+    }
+
+    pub fn slerp_to(&self, end: Vector3, t: f32) -> Vector3 {
+        let alpha = t.clamp01();
+        let dot = self.dot(end)
+            .clamp(-1.0, 1.0);
+        
+        let theta = dot.acos() * alpha;
+        
+        let mut relative = end - *self * dot;
+        relative.normalize();
+
+        (*self * theta.cos()) + (relative * theta.sin())
+    }
+
+    pub fn slerp_to_unclamped(&self, end: Vector3, t: f32) -> Vector3 {
+        let dot = self.dot(end)
+            .clamp(-1.0, 1.0);
+        
+        let theta = dot.acos() * t;
+        
+        let mut relative = end - *self * dot;
+        relative.normalize();
+
+        (*self * theta.cos()) + (relative * theta.sin())
     }
 
     pub fn project(&self, normal: Vector3) -> Vector3 {
-        let dot = dot(normal, normal);
-        if dot < f32::EPSILON {
-            zero;
+        let dot = normal.dot(normal);
+        if dot < EPSILON {
+            Vector3::ZERO
         }
         else {
-            self * dot(self, normal) / dot;
+            *self * self.dot(normal) / dot
         }
     }
     
@@ -221,18 +159,17 @@ impl Vector3 {
         let segment = end - start;
         let proj_point = self.project(segment.normalized());
         
-        clamp_magnitude(proj_point - start, segment.magnitude());
+        (proj_point - start).clamp_magnitude(segment.magnitude())
     }
 
     pub fn project_on_plane(&self, normal: Vector3) -> Vector3 {
-        self - project(self, normal);
+        *self - self.project(normal)
     }
 
     pub fn reflect(&self, normal: Vector3) -> Vector3 {
-        -2.0 * dot(normal, self) * normal + self;
+        -2.0 * normal.dot(*self) * normal + *self
     }
 }
-*/
 
 impl Add for Vector3 {
     type Output = Vector3;
@@ -259,8 +196,6 @@ impl Add<f32> for Vector3 {
 }
 
 impl AddAssign<f32> for Vector3 {
-    type Output = Vector3;
-
     fn add_assign(&mut self, other: f32) {
         self.x += other;
         self.y += other;
@@ -288,6 +223,18 @@ impl Mul<f32> for Vector3 {
             x: self.x * other,
             y: self.y * other,
             z: self.z * other
+        }
+    }
+}
+
+impl Mul<Vector3> for f32 {
+    type Output = Vector3;
+    
+    fn mul(self, other: Vector3) -> Vector3 {
+        Vector3 {
+            x: other.x * self,
+            y: other.y * self,
+            z: other.z * self
         }
     }
 }
@@ -431,7 +378,7 @@ mod tests {
     #[test]
     fn distance() {
         let v0 = Vector3::new(1.0, 0.0, 0.0);
-        let v1 = Vector3::zero;
+        let v1 = Vector3::ZERO;
         
         let distance = Vector3::distance(v0, v1);
         
@@ -441,7 +388,7 @@ mod tests {
     #[test]
     fn distance_fluent() {
         let v0 = Vector3::new(1.0, 0.0, 0.0);
-        let v1 = Vector3::zero;
+        let v1 = Vector3::ZERO;
         
         let distance = v0.distance(v1);
         
@@ -470,8 +417,8 @@ mod tests {
     
     #[test]
     fn scale() {
-        let v = Vector3::one;
-        let v_scaled = Vector3::scale(v, Vector3::one * 4.0);
+        let v = Vector3::ONE;
+        let v_scaled = Vector3::scale(v, Vector3::ONE * 4.0);
         
         assert_eq!(v_scaled.x, 4.0);
         assert_eq!(v_scaled.y, 4.0);
@@ -480,8 +427,8 @@ mod tests {
     
     #[test]
     fn scale_fluent() {
-        let v = Vector3::one;
-        let v_scaled = v.scale(Vector3::one * 4.0);
+        let v = Vector3::ONE;
+        let v_scaled = v.scale(Vector3::ONE * 4.0);
         
         assert_eq!(v_scaled.x, 4.0);
         assert_eq!(v_scaled.y, 4.0);
@@ -490,7 +437,7 @@ mod tests {
     
     #[test]
     fn clamp_magnitude() {
-        let v = Vector3::one * 10.0;
+        let v = Vector3::ONE * 10.0;
         let v_clamped = Vector3::clamp_magnitude(v, 2.0);
         
         assert_eq!(v_clamped.magnitude(), 2.0);
@@ -498,7 +445,7 @@ mod tests {
     
     #[test]
     fn clamp_magnitude_fluent() {
-        let v = Vector3::one * 10.0;
+        let v = Vector3::ONE * 10.0;
         let v_clamped = v.clamp_magnitude(2.0);
         
         assert_eq!(v_clamped.magnitude(), 2.0);   
