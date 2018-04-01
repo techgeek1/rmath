@@ -1,21 +1,21 @@
 use std::ops::*;
 use std::f32::EPSILON;
+use std::fmt;
 use math::*;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy)]
 struct Vector3 {
     x: f32,
     y: f32,
     z: f32
 }
 
-#[allow(dead_code)]
 impl Vector3 {
-    const ZERO: Vector3 = Vector3{ x: 0.0, y: 0.0, z: 0.0 };
-    const ONE: Vector3 = Vector3 { x: 1.0, y: 1.0, z: 1.0 };
-    const FORWARD: Vector3 = Vector3 { x: 0.0, y: 0.0, z: 1.0 };
-    const RIGHT: Vector3 = Vector3 { x: 1.0, y: 0.0, z: 0.0 };
-    const UP: Vector3 = Vector3 { x: 0.0, y: 1.0, z: 0.0 };
+    #[allow(dead_code)] const ZERO: Vector3 = Vector3{ x: 0.0, y: 0.0, z: 0.0 };
+    #[allow(dead_code)] const ONE: Vector3 = Vector3 { x: 1.0, y: 1.0, z: 1.0 };
+    #[allow(dead_code)] const FORWARD: Vector3 = Vector3 { x: 0.0, y: 0.0, z: 1.0 };
+    #[allow(dead_code)] const RIGHT: Vector3 = Vector3 { x: 1.0, y: 0.0, z: 0.0 };
+    #[allow(dead_code)] const UP: Vector3 = Vector3 { x: 0.0, y: 1.0, z: 0.0 };
 
     pub fn new(x: f32, y: f32, z: f32) -> Vector3 {
         Vector3 {
@@ -171,6 +171,28 @@ impl Vector3 {
     }
 }
 
+// Equality
+impl PartialEq for Vector3 {
+    fn eq(&self, other: &Vector3) -> bool {
+        self.x.approx_eq(other.x) && self.y.approx_eq(other.y) && self.z.approx_eq(other.z)
+    }
+}
+
+impl Eq for Vector3 {}
+
+impl ApproxEq for Vector3 {
+    fn approx_eq(self, other: Vector3) -> bool {
+        self.x.approx_eq(other.x) && self.y.approx_eq(other.y) && self.z.approx_eq(other.z)
+    }
+}
+
+impl<'a> ApproxEq<&'a Vector3> for Vector3 {
+    fn approx_eq(self, other: &'a Vector3) -> bool {
+        self.x.approx_eq(other.x) && self.y.approx_eq(other.y) && self.z.approx_eq(other.z)
+    }
+}
+
+// Operators
 impl Add for Vector3 {
     type Output = Vector3;
 
@@ -279,9 +301,16 @@ impl Neg for Vector3 {
     }
 }
 
+// Formatting
 impl ToString for Vector3 {
     fn to_string(&self) -> String {
         format!("({}, {}, {})", self.x, self.y, self.z)
+    }
+}
+
+impl fmt::Debug for Vector3 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {}, {})", self.x, self.y, self.z)
     }
 }
 
@@ -289,13 +318,10 @@ impl ToString for Vector3 {
 mod tests {
     use super::*;
 
-    // Methods
     #[test]
     fn constructor() {
         let v = Vector3::new(1.0, 1.0, 1.0);
-        assert_eq!(v.x, 1.0);
-        assert_eq!(v.y, 1.0);
-        assert_eq!(v.z, 1.0);
+        assert_eq!(v, Vector3::ONE);
     }
 
     #[test]
@@ -331,30 +357,14 @@ mod tests {
         let right = Vector3::new(1.0, 0.0, 0.0);
         let forward = Vector3::new(0.0, 0.0, 1.0);
 
-        let dot_one = Vector3::dot(right, right);
-        assert_eq!(dot_one, 1.0);
-
-        let dot_neg_one = Vector3::dot(right, left);
-        assert_eq!(dot_neg_one, -1.0);
-
-        let dot_zero = Vector3::dot(right, forward);
-        assert_eq!(dot_zero, 0.0);
-    }
-
-    #[test]
-    fn dot_product_fluent() {
-        let left = Vector3::new(-1.0, 0.0, 0.0);
-        let right = Vector3::new(1.0, 0.0, 0.0);
-        let forward = Vector3::new(0.0, 0.0, 1.0);
-
         let dot_one = right.dot(right);
-        assert_eq!(dot_one, 1.0);
+        assert_approx_eq!(dot_one, 1.0);
 
         let dot_neg_one = right.dot(left);
-        assert_eq!(dot_neg_one, -1.0);
+        assert_approx_eq!(dot_neg_one, -1.0);
 
         let dot_zero = right.dot(forward);
-        assert_eq!(dot_zero, 0.0);
+        assert_approx_eq!(dot_zero, 0.0);
     }
     
     #[test]
@@ -362,17 +372,8 @@ mod tests {
         let right = Vector3::new(1.0, 0.0, 0.0);
         let forward = Vector3::new(0.0, 0.0, 1.0);
 
-        let up = Vector3::cross(forward, right);
-        assert_eq!(up.y, 1.0);
-    }
-    
-    #[test]
-    fn cross_product_fluent() {
-        let right = Vector3::new(1.0, 0.0, 0.0);
-        let forward = Vector3::new(0.0, 0.0, 1.0);
-
         let up = forward.cross(right);
-        assert_eq!(up.y, 1.0);
+        assert_eq!(up, Vector3::UP);
     }
     
     #[test]
@@ -380,19 +381,9 @@ mod tests {
         let v0 = Vector3::new(1.0, 0.0, 0.0);
         let v1 = Vector3::ZERO;
         
-        let distance = Vector3::distance(v0, v1);
-        
-        assert_eq!(distance, 1.0);
-    }
-    
-    #[test]
-    fn distance_fluent() {
-        let v0 = Vector3::new(1.0, 0.0, 0.0);
-        let v1 = Vector3::ZERO;
-        
         let distance = v0.distance(v1);
         
-        assert_eq!(distance, 1.0);
+        assert_approx_eq!(distance, 1.0);
     }
     
     #[test]
@@ -400,97 +391,68 @@ mod tests {
         let v0 = Vector3::new(1.0, 0.0, 0.0);
         let v1 = Vector3::new(0.0, 1.0, 0.0);
         
-        let angle = Vector3::angle(v0, v1);
-        
-        assert_eq!(angle, 90.0.to_radians());
-    }
-    
-    #[test]
-    fn angle_fluent() {
-        let v0 = Vector3::new(1.0, 0.0, 0.0);
-        let v1 = Vector3::new(0.0, 1.0, 0.0);
-        
         let angle = v0.angle(v1);
         
-        assert_eq!(angle, 90.0.to_radians());
+        assert_approx_eq!(angle, 90.0_f32.to_radians());
     }
-    
+
     #[test]
     fn scale() {
         let v = Vector3::ONE;
-        let v_scaled = Vector3::scale(v, Vector3::ONE * 4.0);
-        
-        assert_eq!(v_scaled.x, 4.0);
-        assert_eq!(v_scaled.y, 4.0);
-        assert_eq!(v_scaled.z, 4.0);
-    }
-    
-    #[test]
-    fn scale_fluent() {
-        let v = Vector3::ONE;
         let v_scaled = v.scale(Vector3::ONE * 4.0);
         
-        assert_eq!(v_scaled.x, 4.0);
-        assert_eq!(v_scaled.y, 4.0);
-        assert_eq!(v_scaled.z, 4.0);
+        assert_eq!(v_scaled, Vector3::ONE * 4.0);
     }
     
     #[test]
     fn clamp_magnitude() {
         let v = Vector3::ONE * 10.0;
-        let v_clamped = Vector3::clamp_magnitude(v, 2.0);
-        
-        assert_eq!(v_clamped.magnitude(), 2.0);
-    }
-    
-    #[test]
-    fn clamp_magnitude_fluent() {
-        let v = Vector3::ONE * 10.0;
         let v_clamped = v.clamp_magnitude(2.0);
         
-        assert_eq!(v_clamped.magnitude(), 2.0);   
+        assert_approx_eq!(v_clamped.magnitude(), 2.0);   
     }
     
     #[test]
     fn project() {
-        assert!(false);
+        let vector = Vector3::RIGHT * 2.0;
+        let point = Vector3::RIGHT;
+        
+        let projected = point.project(vector);
+        
+        assert_eq!(projected, Vector3::RIGHT);
     }
     
-    #[test]
-    fn project_fluent() {
-        assert!(false);
-    }
-    
+
     #[test]
     fn project_on_segment() {
-        assert!(false);
-    }
-    
-    #[test]
-    fn project_on_segment_fluent() {
-        assert!(false);
+        let segment_end = Vector3::RIGHT * 2.0;
+        let point = Vector3::RIGHT * 4.0;
+        
+        let projected = point.project_on_segment(Vector3::ZERO, segment_end);
+        
+        assert_eq!(projected, Vector3::new(2.0, 0.0, 0.0));
     }
     
     #[test]
     fn project_on_plane() {
-        assert!(false);
-    }
-    
-    #[test]
-    fn project_on_plane_fluent() {
-        assert!(false);
+        let plane_normal = Vector3::FORWARD;
+        let point = -Vector3::FORWARD * 4.0;
+        
+        let projected = point.project_on_plane(plane_normal);
+        
+        assert_eq!(projected, Vector3::ZERO);
     }
     
     #[test]
     fn reflect() {
-        assert!(false);
+        let normal = Vector3::FORWARD;
+        let vector = Vector3::new(-1.0, 0.0, -1.0);
+        
+        let reflected = vector.reflect(normal);
+        
+        assert_eq!(reflected, Vector3::new(-1.0, 0.0, 1.0));
     }
     
-    #[test]
-    fn reflect_fluent() {
-        assert!(false);
-    }
-
     // Operators
     #[test]
     fn add_scalar() {
@@ -525,6 +487,15 @@ mod tests {
     fn mul_scalar() {
         let v = Vector3::new(1.0, 1.0, 1.0) * 2.0;
 
+        assert_eq!(v.x, 2.0);
+        assert_eq!(v.y, 2.0);
+        assert_eq!(v.z, 2.0);
+    }
+    
+    #[test]
+    fn mul_float_vector() {
+        let v = 2.0 * Vector3::ONE;
+        
         assert_eq!(v.x, 2.0);
         assert_eq!(v.y, 2.0);
         assert_eq!(v.z, 2.0);
