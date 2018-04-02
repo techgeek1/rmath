@@ -151,7 +151,7 @@ impl Vector3 {
             Vector3::ZERO
         }
         else {
-            *self * self.dot(normal) / dot
+            normal * self.dot(normal) / dot
         }
     }
     
