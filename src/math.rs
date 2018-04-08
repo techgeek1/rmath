@@ -1,13 +1,4 @@
-use std::f32::EPSILON;
-
-#[allow(unused_macros)]
-macro_rules! assert_approx_eq {
-    ($value: expr, $expected: expr) => (
-        if !$value.approx_eq($expected) {
-            panic!("value: {}\nexpected: {}", $value, $expected);
-        }
-    )
-}
+use std;
 
 pub trait Clamp {
     fn clamp(self, min: Self, max: Self) -> Self;
@@ -46,46 +37,40 @@ impl Clamp01 for f32 {
 }
 
 pub trait ApproxEq<Other = Self> where Other: ?Sized {
+    type Output;
+    
     fn approx_eq(self, other: Other) -> bool;
 }
 
-impl ApproxEq for f32 {
-    fn approx_eq(self, other: f32) -> bool {
-        if (self - other).abs() <= EPSILON {
-            return true;
+macro_rules! impl_approx_eq {
+    ($t: ty, $epsilon:expr) => {
+        impl ApproxEq for $t {
+            type Output = bool;
+            
+            fn approx_eq(self, other: $t) -> bool {
+                if (self - other).abs() <= $epsilon {
+                    return true;
+                }
+
+                if (self < 0.0) != (other < 0.0) {
+                    return false;
+                }
+
+                let ulps_diff = ((self as i32) - (other as i32)).abs();
+                if ulps_diff <= 1 {
+                    return false;
+                }
+
+                false
+            }
         }
         
-        if (self < 0.0) != (other < 0.0) {
-            return false;
-        }
-        
-        let ulps_diff = ((self as i32) - (other as i32)).abs();
-        if ulps_diff <= 1 {
-            return false;
-        }
-        
-        false
+        impl_ref_ops! { impl ApproxEq for $t, $t, approx_eq, bool }
     }
 }
 
-impl<'a> ApproxEq<&'a f32> for f32 {
-    fn approx_eq(self, other: &'a f32) -> bool {
-        if (self - *other).abs() <= EPSILON {
-            return true;
-        }
-        
-        if (self < 0.0) != (*other < 0.0) {
-            return false;
-        }
-        
-        let ulps_diff = (self - *other).abs() as i32;
-        if ulps_diff <= 1 {
-            return false;
-        }
-        
-        false
-    }
-}
+impl_approx_eq!(f32, std::f32::EPSILON);
+impl_approx_eq!(f64, std::f64::EPSILON);
 
 #[allow(unused_imports)]
 mod tests {
@@ -102,12 +87,8 @@ mod tests {
     }
     
     #[test]
-    fn approx_eq_val() {
-        assert_approx_eq!(1.0, 1.0);
-    }
-
-    #[test]
-    fn approx_eq_ref() {
-        assert_approx_eq!(1.0, &1.0);
+    fn approx_eq() {
+        assert_approx_eq!(1.0_f32, 1.0_f32);
+        assert_approx_eq!(1.0_f64, 1.0_f64);
     }
 }

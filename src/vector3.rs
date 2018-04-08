@@ -3,6 +3,9 @@ use std::f32::EPSILON;
 use std::fmt;
 use math::*;
 
+// TODO:
+// - Implement all reference variants for operators
+
 #[derive(Clone, Copy)]
 struct Vector3 {
     x: f32,
@@ -171,6 +174,19 @@ impl Vector3 {
     }
 }
 
+// Formatting
+impl ToString for Vector3 {
+    fn to_string(&self) -> String {
+        format!("({}, {}, {})", self.x, self.y, self.z)
+    }
+}
+
+impl fmt::Debug for Vector3 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {}, {})", self.x, self.y, self.z)
+    }
+}
+
 // Equality
 impl PartialEq for Vector3 {
     fn eq(&self, other: &Vector3) -> bool {
@@ -180,114 +196,182 @@ impl PartialEq for Vector3 {
 
 impl Eq for Vector3 {}
 
-impl ApproxEq for Vector3 {
-    fn approx_eq(self, other: Vector3) -> bool {
-        self.x.approx_eq(other.x) && self.y.approx_eq(other.y) && self.z.approx_eq(other.z)
-    }
-}
-
-impl<'a> ApproxEq<&'a Vector3> for Vector3 {
-    fn approx_eq(self, other: &'a Vector3) -> bool {
-        self.x.approx_eq(other.x) && self.y.approx_eq(other.y) && self.z.approx_eq(other.z)
-    }
-}
-
-// Operators
-impl Add for Vector3 {
-    type Output = Vector3;
-
-    fn add(self, other: Vector3) -> Vector3 {
-        Vector3 {
-            x: self.x + other.x,
-            y: self.y + other.y,
-            z: self.z + other.z
+macro_rules! impl_approx_eq {
+    ($t: ty) => {
+        impl ApproxEq for $t {
+            type Output = bool;
+            
+            fn approx_eq(self, other: $t) -> bool {
+                self.x.approx_eq(other.x) && self.y.approx_eq(other.y) && self.z.approx_eq(other.z)
+            }
         }
+        
+        impl_ref_ops! { impl ApproxEq for $t, $t, approx_eq, bool }
     }
 }
 
-impl Add<f32> for Vector3 {
-    type Output = Vector3;
+impl_approx_eq!(Vector3);
 
-    fn add(self, other: f32) -> Vector3 {
-        Vector3 {
-            x: self.x + other,
-            y: self.y + other,
-            z: self.z + other
+// Ops
+macro_rules! impl_add_vector3 {
+    () => {
+        impl Add for Vector3 {
+            type Output = Vector3;
+            
+            fn add(self, other: Vector3) -> Vector3 {
+                Vector3 {
+                    x: self.x + other.x,
+                    y: self.y + other.y,
+                    z: self.z + other.z
+                }
+            }
         }
+        
+        impl_ref_ops! { impl Add for Vector3, Vector3, add, Vector3 }
     }
 }
 
-impl AddAssign<f32> for Vector3 {
-    fn add_assign(&mut self, other: f32) {
-        self.x += other;
-        self.y += other;
-        self.z += other;
-    }
-}
+impl_add_vector3!();
 
-impl Sub for Vector3 {
-    type Output = Vector3;
-
-    fn sub(self, other: Vector3) -> Vector3 {
-        Vector3 {
-            x: self.x - other.x,
-            y: self.y - other.y,
-            z: self.z - other.z
+macro_rules! impl_add_vector3_scalar {
+    () => {
+        impl Add<f32> for Vector3 {
+            type Output = Vector3;
+            
+            fn add(self, other: f32) -> Vector3 {
+                Vector3 {
+                    x: self.x + other,
+                    y: self.y + other,
+                    z: self.z + other
+                }
+            }
         }
+        
+        impl_ref_ops! { impl Add for Vector3, f32, add, Vector3 }
     }
 }
 
-impl Mul<f32> for Vector3 {
-    type Output = Vector3;
+impl_add_vector3_scalar!();
 
-    fn mul(self, other: f32) -> Vector3 {
-        Vector3 {
-            x: self.x * other,
-            y: self.y * other,
-            z: self.z * other
+macro_rules! impl_sub_vector3 {
+    () => {
+        impl Sub for Vector3 {
+            type Output = Vector3;
+            
+            fn sub(self, other: Vector3) -> Vector3 {
+                Vector3 {
+                    x: self.x - other.x,
+                    y: self.y - other.y,
+                    z: self.z - other.z
+                }
+            }
         }
+        
+        impl_ref_ops! { impl Sub for Vector3, Vector3, sub, Vector3 }
     }
 }
 
-impl Mul<Vector3> for f32 {
-    type Output = Vector3;
-    
-    fn mul(self, other: Vector3) -> Vector3 {
-        Vector3 {
-            x: other.x * self,
-            y: other.y * self,
-            z: other.z * self
+impl_sub_vector3!();
+
+macro_rules! impl_sub_vector3_scalar {
+    () => {
+        impl Sub<f32> for Vector3 {
+            type Output = Vector3;
+            
+            fn sub(self, other: f32) -> Vector3 {
+                Vector3 {
+                    x: self.x - other,
+                    y: self.y - other,
+                    z: self.z - other
+                }
+            }
         }
+        
+        impl_ref_ops! { impl Sub for Vector3, f32, sub, Vector3 }
     }
 }
 
-impl MulAssign<f32> for Vector3 {
-    fn mul_assign(&mut self, other: f32) {
-        self.x *= other;
-        self.y *= other;
-        self.z *= other;
-    }
-}
+impl_sub_vector3_scalar!();
 
-impl Div<f32> for Vector3 {  
-    type Output = Vector3;
-
-    fn div(self, other: f32) -> Vector3 {
-        Vector3 {
-            x: self.x / other,
-            y: self.y / other,
-            z: self.z / other
+macro_rules! impl_mul_vector3 {
+    () => {
+        impl Mul for Vector3 {
+            type Output = Vector3;
+            
+            fn mul(self, other: Vector3) -> Vector3 {
+                Vector3 {
+                    x: self.x * other.x,
+                    y: self.y * other.y,
+                    z: self.z * other.z
+                }
+            }
         }
+        
+        impl_ref_ops! { impl Mul for Vector3, Vector3, mul, Vector3 }
     }
 }
 
-impl DivAssign<f32> for Vector3 {
-    fn div_assign(&mut self, other: f32) {
-        self.x = self.x / other;
-        self.y = self.y / other;
-        self.z = self.z / other;
+impl_mul_vector3!();
+
+macro_rules! impl_mul_vector3_scalar {
+    () => {
+        impl Mul<f32> for Vector3 {
+            type Output = Vector3;
+            
+            fn mul(self, other: f32) -> Vector3 {
+                Vector3 {
+                    x: self.x * other,
+                    y: self.y * other,
+                    z: self.z * other
+                }
+            }
+        }
+        
+        impl_ref_ops! { impl Mul for Vector3, f32, mul, Vector3 }
     }
 }
+
+impl_mul_vector3_scalar!();
+
+macro_rules! impl_mul_scalar_Vector3 {
+    () => {
+        impl Mul<Vector3> for f32 {
+            type Output = Vector3;
+            
+            fn mul(self, other: Vector3) -> Vector3 {
+                Vector3 {
+                    x: other.x * self,
+                    y: other.y * self,
+                    z: other.z * self
+                }
+            }
+        }
+        
+        impl_ref_ops! { impl Mul for f32, Vector3, mul, Vector3 }
+    }
+}
+
+impl_mul_scalar_Vector3!();
+
+macro_rules! impl_div_vector3_scalar {
+    () => {
+        impl Div<f32> for Vector3 {
+            type Output = Vector3;
+            
+            fn div(self, other: f32) -> Vector3 {
+                Vector3 {
+                    x: self.x / other,
+                    y: self.y / other,
+                    z: self.z / other
+                }
+            }
+        }
+        
+        impl_ref_ops! { impl Div for Vector3, f32, div, Vector3 }
+    }
+}
+
+impl_div_vector3_scalar!();
 
 impl Neg for Vector3 {
     type Output = Vector3;
@@ -301,16 +385,51 @@ impl Neg for Vector3 {
     }
 }
 
-// Formatting
-impl ToString for Vector3 {
-    fn to_string(&self) -> String {
-        format!("({}, {}, {})", self.x, self.y, self.z)
+impl AddAssign<f32> for Vector3 {
+    fn add_assign(&mut self, other: f32) {
+        self.x += other;
+        self.y += other;
+        self.z += other;
     }
 }
 
-impl fmt::Debug for Vector3 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "({}, {}, {})", self.x, self.y, self.z)
+impl<'a> AddAssign<&'a f32> for Vector3 {
+    fn add_assign(&mut self, other: &'a f32) {
+        self.x += *other;
+        self.y += *other;
+        self.z += *other;
+    }
+}
+
+impl MulAssign<f32> for Vector3 {
+    fn mul_assign(&mut self, other: f32) {
+        self.x *= other;
+        self.y *= other;
+        self.z *= other;
+    }
+}
+
+impl<'a> MulAssign<&'a f32> for Vector3 {
+    fn mul_assign(&mut self, other: &'a f32) {
+        self.x *= *other;
+        self.y *= *other;
+        self.z *= *other;
+    }
+}
+
+impl DivAssign<f32> for Vector3 {
+    fn div_assign(&mut self, other: f32) {
+        self.x = self.x / other;
+        self.y = self.y / other;
+        self.z = self.z / other;
+    }
+}
+
+impl<'a> DivAssign<&'a f32> for Vector3 {
+    fn div_assign(&mut self, other: &'a f32) {
+        self.x = self.x / *other;
+        self.y = self.y / *other;
+        self.z = self.z / *other;
     }
 }
 
