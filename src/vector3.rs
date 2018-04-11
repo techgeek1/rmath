@@ -27,6 +27,14 @@ impl Vector3 {
             z: z
         }
     }
+    
+    pub fn clamp_magnitude(&self, max_length: f32) -> Vector3 {
+        if self.sqr_magnitude() > max_length * max_length {
+            return self.normalized() * max_length
+        }
+        
+        *self
+    }
 
     pub fn sqr_magnitude(&self) -> f32 {
         self.x * self.x + self.y * self.y + self.z * self.z
@@ -55,122 +63,113 @@ impl Vector3 {
         Vector3::ZERO
     }
 
-    pub fn dot(&self, other: Vector3) -> f32 {
-        self.x * other.x + self.y * other.y + self.z * other.z
+    pub fn dot(a: Vector3, b: Vector3) -> f32 {
+        a.x * b.x + a.y * b.y + a.z * b.z
     }
 
-    pub fn cross(&self, other: Vector3) -> Vector3 {
+    pub fn cross(a: Vector3, b: Vector3) -> Vector3 {
         Vector3 {
-            x: self.y * other.z - self.z * other.y,
-            y: self.z * other.x - self.x * other.z,
-            z: self.x * other.y - self.y * other.x
+            x: a.y * b.z - a.z * b.y,
+            y: a.z * b.x - a.x * b.z,
+            z: a.x * b.y - a.y * b.x
         }
     }
     
-    pub fn distance(&self, other: Vector3) -> f32 {
-        (*self - other).magnitude()
+    pub fn distance(a: Vector3, b: Vector3) -> f32 {
+        (a - b).magnitude()
     }
 
-    pub fn angle(&self, other: Vector3) -> f32 {
-        self.normalized()
-            .dot(other.normalized())
+    pub fn angle(a: Vector3, b: Vector3) -> f32 {
+        Vector3::dot(a.normalized(), b.normalized())
             .clamp(-1.0, 1.0)
             .acos()
     }
 
-    pub fn scale(&self, other: Vector3) -> Vector3 {
+    pub fn scale(v: Vector3, other: Vector3) -> Vector3 {
         Vector3 {
-            x: self.x * other.x,
-            y: self.y * other.y,
-            z: self.z * other.z
+            x: v.x * other.x,
+            y: v.y * other.y,
+            z: v.z * other.z
         }
-    }
-
-    pub fn clamp_magnitude(&self, max_length: f32) -> Vector3 {
-        if self.sqr_magnitude() > max_length * max_length {
-            return self.normalized() * max_length
-        }
-        
-        *self
     }
     
-    pub fn ortho_normalize(&mut self, other: &mut Vector3) {
-        self.normalize();
+    pub fn ortho_normalize(a: &mut Vector3, b: &mut Vector3) {
+        a.normalize();
 
-        let mut c = self.cross(*other);
+        let mut c = Vector3::cross(*a, *b);
         c.normalize();
 
-        *other = self.cross(*other);
-        other.normalize();
+        *b = Vector3::cross(*a, *b);
+        b.normalize();
     }
 
     
-    pub fn lerp_to(&self, end: Vector3, t: f32) -> Vector3 {
+    pub fn lerp_to(start: Vector3, end: Vector3, t: f32) -> Vector3 {
         let alpha = t.clamp01();
 
         Vector3 {
-            x: self.x + (end.x - self.x) * alpha,
-            y: self.y + (end.y - self.y) * alpha,
-            z: self.z + (end.z - self.z) * alpha
+            x: start.x + (end.x - start.x) * alpha,
+            y: start.y + (end.y - start.y) * alpha,
+            z: start.z + (end.z - start.z) * alpha
         }
     }
 
-    pub fn lerp_to_unclamped(&self, end: Vector3, t: f32) -> Vector3 {
+    pub fn lerp_to_unclamped(start: Vector3, end: Vector3, t: f32) -> Vector3 {
         Vector3 {
-            x: self.x + (end.x - self.x) * t,
-            y: self.y + (end.y - self.y) * t,
-            z: self.z + (end.z - self.z) * t
+            x: start.x + (end.x - start.x) * t,
+            y: start.y + (end.y - start.y) * t,
+            z: start.z + (end.z - start.z) * t
         }
     }
 
-    pub fn slerp_to(&self, end: Vector3, t: f32) -> Vector3 {
+    pub fn slerp_to(start: Vector3, end: Vector3, t: f32) -> Vector3 {
         let alpha = t.clamp01();
-        let dot = self.dot(end)
+        let dot = Vector3::dot(start, end)
             .clamp(-1.0, 1.0);
         
         let theta = dot.acos() * alpha;
         
-        let mut relative = end - *self * dot;
+        let mut relative = end - start * dot;
         relative.normalize();
 
-        (*self * theta.cos()) + (relative * theta.sin())
+        (start * theta.cos()) + (relative * theta.sin())
     }
 
-    pub fn slerp_to_unclamped(&self, end: Vector3, t: f32) -> Vector3 {
-        let dot = self.dot(end)
+    pub fn slerp_to_unclamped(start: Vector3, end: Vector3, t: f32) -> Vector3 {
+        let dot = Vector3::dot(start, end)
             .clamp(-1.0, 1.0);
         
         let theta = dot.acos() * t;
         
-        let mut relative = end - *self * dot;
+        let mut relative = end - start * dot;
         relative.normalize();
 
-        (*self * theta.cos()) + (relative * theta.sin())
+        (start * theta.cos()) + (relative * theta.sin())
     }
 
-    pub fn project(&self, normal: Vector3) -> Vector3 {
-        let dot = normal.dot(normal);
+    pub fn project(v: Vector3, normal: Vector3) -> Vector3 {
+        let dot = Vector3::dot(normal, normal);
         if dot < EPSILON {
             Vector3::ZERO
         }
         else {
-            normal * self.dot(normal) / dot
+            normal * Vector3::dot(v, normal) / dot
         }
     }
     
-    pub fn project_on_segment(&self, start: Vector3, end: Vector3) -> Vector3 {
+    pub fn project_on_segment(point: Vector3, start: Vector3, end: Vector3) -> Vector3 {
         let segment = end - start;
-        let proj_point = self.project(segment.normalized());
+        let proj_point = Vector3::project(point, segment.normalized());
         
         (proj_point - start).clamp_magnitude(segment.magnitude())
     }
 
-    pub fn project_on_plane(&self, normal: Vector3) -> Vector3 {
-        *self - self.project(normal)
+    pub fn project_on_plane(v: Vector3, normal: Vector3) -> Vector3 {
+        v - Vector3::project(v, normal)
     }
 
-    pub fn reflect(&self, normal: Vector3) -> Vector3 {
-        -2.0 * normal.dot(*self) * normal + *self
+    pub fn reflect(v: Vector3, normal: Vector3) -> Vector3 {
+        -2.0 * Vector3::dot(normal, v) * normal + v
     }
 }
 
@@ -196,187 +195,95 @@ impl PartialEq for Vector3 {
 
 impl Eq for Vector3 {}
 
-macro_rules! impl_approx_eq {
-    ($t: ty) => {
-        impl ApproxEq for $t {
-            type Output = bool;
-            
-            fn approx_eq(self, other: $t) -> bool {
-                self.x.approx_eq(other.x) && self.y.approx_eq(other.y) && self.z.approx_eq(other.z)
-            }
-        }
-        
-        impl_ref_ops! { impl ApproxEq for $t, $t, approx_eq, bool }
+impl_op! { ApproxEq,
+    fn approx_eq(self: Vector3, other: Vector3) -> bool {
+        self.x.approx_eq(other.x) && self.y.approx_eq(other.y) && self.z.approx_eq(other.z)
     }
 }
-
-impl_approx_eq!(Vector3);
 
 // Ops
-macro_rules! impl_add_vector3 {
-    () => {
-        impl Add for Vector3 {
-            type Output = Vector3;
-            
-            fn add(self, other: Vector3) -> Vector3 {
-                Vector3 {
-                    x: self.x + other.x,
-                    y: self.y + other.y,
-                    z: self.z + other.z
-                }
-            }
+impl_op! { Add,
+    fn add(self: Vector3, other: Vector3) -> Vector3 {
+        Vector3 {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z
         }
-        
-        impl_ref_ops! { impl Add for Vector3, Vector3, add, Vector3 }
     }
 }
 
-impl_add_vector3!();
-
-macro_rules! impl_add_vector3_scalar {
-    () => {
-        impl Add<f32> for Vector3 {
-            type Output = Vector3;
-            
-            fn add(self, other: f32) -> Vector3 {
-                Vector3 {
-                    x: self.x + other,
-                    y: self.y + other,
-                    z: self.z + other
-                }
-            }
+impl_op! { Add,
+    fn add(self: Vector3, other: f32) -> Vector3 {
+        Vector3 {
+            x: self.x + other,
+            y: self.y + other,
+            z: self.z + other
         }
-        
-        impl_ref_ops! { impl Add for Vector3, f32, add, Vector3 }
     }
 }
 
-impl_add_vector3_scalar!();
-
-macro_rules! impl_sub_vector3 {
-    () => {
-        impl Sub for Vector3 {
-            type Output = Vector3;
-            
-            fn sub(self, other: Vector3) -> Vector3 {
-                Vector3 {
-                    x: self.x - other.x,
-                    y: self.y - other.y,
-                    z: self.z - other.z
-                }
-            }
+impl_op! { Sub,
+    fn sub(self: Vector3, other: Vector3) -> Vector3 {
+        Vector3 {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z
         }
-        
-        impl_ref_ops! { impl Sub for Vector3, Vector3, sub, Vector3 }
     }
 }
 
-impl_sub_vector3!();
-
-macro_rules! impl_sub_vector3_scalar {
-    () => {
-        impl Sub<f32> for Vector3 {
-            type Output = Vector3;
-            
-            fn sub(self, other: f32) -> Vector3 {
-                Vector3 {
-                    x: self.x - other,
-                    y: self.y - other,
-                    z: self.z - other
-                }
-            }
+impl_op! { Sub,
+    fn sub(self: Vector3, other: f32) -> Vector3 {
+        Vector3 {
+            x: self.x - other,
+            y: self.y - other,
+            z: self.z - other
         }
-        
-        impl_ref_ops! { impl Sub for Vector3, f32, sub, Vector3 }
     }
 }
 
-impl_sub_vector3_scalar!();
-
-macro_rules! impl_mul_vector3 {
-    () => {
-        impl Mul for Vector3 {
-            type Output = Vector3;
-            
-            fn mul(self, other: Vector3) -> Vector3 {
-                Vector3 {
-                    x: self.x * other.x,
-                    y: self.y * other.y,
-                    z: self.z * other.z
-                }
-            }
+impl_op! { Mul,
+    fn mul(self: Vector3, other: Vector3) -> Vector3 {
+        Vector3 {
+            x: self.x * other.x,
+            y: self.y * other.y,
+            z: self.z * other.z
         }
-        
-        impl_ref_ops! { impl Mul for Vector3, Vector3, mul, Vector3 }
     }
 }
 
-impl_mul_vector3!();
-
-macro_rules! impl_mul_vector3_scalar {
-    () => {
-        impl Mul<f32> for Vector3 {
-            type Output = Vector3;
-            
-            fn mul(self, other: f32) -> Vector3 {
-                Vector3 {
-                    x: self.x * other,
-                    y: self.y * other,
-                    z: self.z * other
-                }
-            }
+impl_op! { Mul,
+    fn mul(self: Vector3, other: f32) -> Vector3 {
+        Vector3 {
+            x: self.x * other,
+            y: self.y * other,
+            z: self.z * other
         }
-        
-        impl_ref_ops! { impl Mul for Vector3, f32, mul, Vector3 }
     }
 }
 
-impl_mul_vector3_scalar!();
-
-macro_rules! impl_mul_scalar_Vector3 {
-    () => {
-        impl Mul<Vector3> for f32 {
-            type Output = Vector3;
-            
-            fn mul(self, other: Vector3) -> Vector3 {
-                Vector3 {
-                    x: other.x * self,
-                    y: other.y * self,
-                    z: other.z * self
-                }
-            }
+impl_op! { Mul,
+    fn mul(self: f32, other: Vector3) -> Vector3 {
+        Vector3 {
+            x: other.x * self,
+            y: other.y * self,
+            z: other.z * self
         }
-        
-        impl_ref_ops! { impl Mul for f32, Vector3, mul, Vector3 }
     }
 }
 
-impl_mul_scalar_Vector3!();
-
-macro_rules! impl_div_vector3_scalar {
-    () => {
-        impl Div<f32> for Vector3 {
-            type Output = Vector3;
-            
-            fn div(self, other: f32) -> Vector3 {
-                Vector3 {
-                    x: self.x / other,
-                    y: self.y / other,
-                    z: self.z / other
-                }
-            }
+impl_op! { Div,
+    fn div(self: Vector3, other: f32) -> Vector3 {
+        Vector3 {
+            x: self.x / other,
+            y: self.y / other,
+            z: self.z / other
         }
-        
-        impl_ref_ops! { impl Div for Vector3, f32, div, Vector3 }
     }
 }
 
-impl_div_vector3_scalar!();
-
-impl Neg for Vector3 {
-    type Output = Vector3;
-
-    fn neg(self) -> Vector3 {
+impl_op! { Neg,
+    fn neg(self: Vector3) -> Vector3 {
         Vector3 {
             x: -self.x,
             y: -self.y,
@@ -385,51 +292,27 @@ impl Neg for Vector3 {
     }
 }
 
-impl AddAssign<f32> for Vector3 {
-    fn add_assign(&mut self, other: f32) {
+impl_op! { AddAssign,
+    fn add_assign(&mut self: Vector3, other: f32) {
         self.x += other;
         self.y += other;
         self.z += other;
     }
 }
 
-impl<'a> AddAssign<&'a f32> for Vector3 {
-    fn add_assign(&mut self, other: &'a f32) {
-        self.x += *other;
-        self.y += *other;
-        self.z += *other;
-    }
-}
-
-impl MulAssign<f32> for Vector3 {
-    fn mul_assign(&mut self, other: f32) {
+impl_op! { MulAssign,
+    fn mul_assign(&mut self: Vector3, other: f32) {
         self.x *= other;
         self.y *= other;
         self.z *= other;
     }
 }
 
-impl<'a> MulAssign<&'a f32> for Vector3 {
-    fn mul_assign(&mut self, other: &'a f32) {
-        self.x *= *other;
-        self.y *= *other;
-        self.z *= *other;
-    }
-}
-
-impl DivAssign<f32> for Vector3 {
-    fn div_assign(&mut self, other: f32) {
+impl_op! { DivAssign,
+    fn div_assign(&mut self: Vector3, other: f32) {
         self.x = self.x / other;
         self.y = self.y / other;
-        self.z = self.z / other;
-    }
-}
-
-impl<'a> DivAssign<&'a f32> for Vector3 {
-    fn div_assign(&mut self, other: &'a f32) {
-        self.x = self.x / *other;
-        self.y = self.y / *other;
-        self.z = self.z / *other;
+        self.z = self.z / other;   
     }
 }
 
@@ -476,13 +359,13 @@ mod tests {
         let right = Vector3::new(1.0, 0.0, 0.0);
         let forward = Vector3::new(0.0, 0.0, 1.0);
 
-        let dot_one = right.dot(right);
+        let dot_one = Vector3::dot(right, right);
         assert_approx_eq!(dot_one, 1.0);
 
-        let dot_neg_one = right.dot(left);
+        let dot_neg_one = Vector3::dot(right, left);
         assert_approx_eq!(dot_neg_one, -1.0);
 
-        let dot_zero = right.dot(forward);
+        let dot_zero = Vector3::dot(right, forward);
         assert_approx_eq!(dot_zero, 0.0);
     }
     
@@ -491,7 +374,7 @@ mod tests {
         let right = Vector3::new(1.0, 0.0, 0.0);
         let forward = Vector3::new(0.0, 0.0, 1.0);
 
-        let up = forward.cross(right);
+        let up = Vector3::cross(forward, right);
         assert_eq!(up, Vector3::UP);
     }
     
@@ -500,7 +383,7 @@ mod tests {
         let v0 = Vector3::new(1.0, 0.0, 0.0);
         let v1 = Vector3::ZERO;
         
-        let distance = v0.distance(v1);
+        let distance = Vector3::distance(v0, v1);
         
         assert_approx_eq!(distance, 1.0);
     }
@@ -510,7 +393,7 @@ mod tests {
         let v0 = Vector3::new(1.0, 0.0, 0.0);
         let v1 = Vector3::new(0.0, 1.0, 0.0);
         
-        let angle = v0.angle(v1);
+        let angle = Vector3::angle(v0, v1);
         
         assert_approx_eq!(angle, 90.0_f32.to_radians());
     }
@@ -518,7 +401,7 @@ mod tests {
     #[test]
     fn scale() {
         let v = Vector3::ONE;
-        let v_scaled = v.scale(Vector3::ONE * 4.0);
+        let v_scaled = Vector3::scale(v, Vector3::ONE * 4.0);
         
         assert_eq!(v_scaled, Vector3::ONE * 4.0);
     }
@@ -536,7 +419,7 @@ mod tests {
         let vector = Vector3::RIGHT * 2.0;
         let point = Vector3::RIGHT;
         
-        let projected = point.project(vector);
+        let projected = Vector3::project(point, vector);
         
         assert_eq!(projected, Vector3::RIGHT);
     }
@@ -547,7 +430,7 @@ mod tests {
         let segment_end = Vector3::RIGHT * 2.0;
         let point = Vector3::RIGHT * 4.0;
         
-        let projected = point.project_on_segment(Vector3::ZERO, segment_end);
+        let projected = Vector3::project_on_segment(point, Vector3::ZERO, segment_end);
         
         assert_eq!(projected, Vector3::new(2.0, 0.0, 0.0));
     }
@@ -557,7 +440,7 @@ mod tests {
         let plane_normal = Vector3::FORWARD;
         let point = -Vector3::FORWARD * 4.0;
         
-        let projected = point.project_on_plane(plane_normal);
+        let projected = Vector3::project_on_plane(point, plane_normal);
         
         assert_eq!(projected, Vector3::ZERO);
     }
@@ -567,7 +450,7 @@ mod tests {
         let normal = Vector3::FORWARD;
         let vector = Vector3::new(-1.0, 0.0, -1.0);
         
-        let reflected = vector.reflect(normal);
+        let reflected = Vector3::reflect(vector, normal);
         
         assert_eq!(reflected, Vector3::new(-1.0, 0.0, 1.0));
     }

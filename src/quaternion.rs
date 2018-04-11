@@ -1,4 +1,5 @@
 use std::ops::*;
+use vector3::Vector3;
 
 #[derive(Copy, Clone, PartialEq)]
 struct Quaternion {
@@ -33,35 +34,35 @@ impl Quaternion {
     }
 
     pub fn from_direction(forward: Vector3) -> Quaternion {
-
+        unimplemented!();
     }
 
     pub fn from_orientation(forward: Vector3, up: Vector3) -> Quaternion {
-        
+        unimplemented!();
     }
 
     pub fn from_euler(euler: Vector3) -> Quaternion{
-        
+        unimplemented!();
     }
 
     pub fn from_angle_axis(angle: f32, axis: Vector3) -> Quaternion {
-
+        unimplemented!();
     }
 
-    pub fn to_angle_axis(&self, &mut outAngle: f32, &mut outAxis: Vector3) {
-
+    pub fn to_angle_axis(&self, outAngle: &mut f32, outAxis: &mut Vector3) {
+        unimplemented!();
     }
     
     pub fn to_euler(&self) -> Vector3 {
-
+        unimplemented!();
     }
     
-    pub fn to_euler_rad(&self) -> Vevtor3 {
-        
+    pub fn to_euler_rad(&self) -> Vector3 {
+        unimplemented!();
     }
     
     pub fn forward(&self) -> Vectro3 {
-        
+        unimplemented!();
     }
     
     pub fn right(&self) -> Vector3 {
@@ -69,7 +70,7 @@ impl Quaternion {
     }
     
     pub fn up(&self) -> Vector3 {
-        
+        unimplemented!();
     }
 
     pub fn dot(a: Quaternion, b: Quaternion) -> f32 {
@@ -105,130 +106,80 @@ impl Quaternion {
     }
     
     pub fn normalized(&self) -> Quaternion {
-        
+        unimplemented!();
     }
     
     pub fn slerp_to(&self, other: Quaternion, t: f32) -> Quaternion {
-        
+        unimplemented!();
     }
     
     pub fn squad_to(&self, other: Quaternion, t: f32) -> Quaternion {
-        
+        unimplemented!();
     }
 }
 
-macro_rules! impl_add_Quaternion {
-    () => {
-        impl Add for Quaternion {
-            type Output = Quaternion;
-
-            fn add(self, other: Quaternion) -> Quaternion {
-                Quaternion {
-                    x: self.x + other.x,
-                    y: self.y + other.y,
-                    z: self.z + other.z,
-                    w: self.w + other.w
-                }
-            }
+impl_op! { Add,
+    fn add(self: Quaternion, other: Quaternion) -> Quaternion {
+        Quaternion {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+            w: self.w + other.w
         }
-        
-        impl_ref_ops! { impl Add for Quaternion, Quaternion, add, Quaternion }
     }
 }
 
-impl_add_Quaternion!();
-
-macro_rules! impl_sub_Quaternion {
-    () => {
-        impl Sub for Quaternion {
-            type Output = Quaternion;
-            
-            fn sub(self, other: Quaternion) -> Quaternion {
-                Quaternion {
-                    x: self.x - other.x,
-                    y: self.y - other.y,
-                    z: self.z - other.z,
-                    w: self.w - other.w
-                }
-            }
+impl_op! { Sub,
+    fn sub(self: Quaternion, other: Quaternion) -> Quaternion {
+        Quaternion {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z,
+            w: self.w - other.w
         }
-        
-        impl_ref_ops! { impl Sub for Quaternion, Quaternion, sub, Quaternion }
     }
 }
 
-impl_sub_Quaternion!();
-
-macro_rules! impl_mul_Quaternion {
-    () => {
-        impl Mul for Quaternion {
-            type Output = Quaternion;
-
-            fn mul(self, other: Quaternion) -> Quaternion {
-                Quaternion {
-                    x: self.w * other.x + self.x * other.w + self.y * other.z - self.z * other.y,
-                    y: self.w * other.y - self.x * other.z + self.y * other.w + self.z * other.x,
-                    z: self.w * other.z + self.x * other.y - self.y * other.x + self.z * other.w,
-                    w: self.w * other.w - self.x * other.x - self.y * other.y - self.z * other.z
-                }
-            }
+impl_op! { Mul,
+    fn mul(self: Quaternion, other: Quaternion) -> Quaternion {
+        Quaternion {
+            x: self.w * other.x + self.x * other.w + self.y * other.z - self.z * other.y,
+            y: self.w * other.y - self.x * other.z + self.y * other.w + self.z * other.x,
+            z: self.w * other.z + self.x * other.y - self.y * other.x + self.z * other.w,
+            w: self.w * other.w - self.x * other.x - self.y * other.y - self.z * other.z
         }
-        
-        impl_ref_ops! { impl Mul for Quaternion, Quaternion, mul, Quaternion }
     }
 }
 
-impl_mul_Quaternion!();
-
-macro_rules! impl_mul_Quaternion_Scalar {
-    () => {
-        impl Mul<f32> for Quaternion {
-            type Output = Quaternion;
-            
-            fn mul(self, other: f32) -> Quaternion {
-                Quaternion {
-                    x: self.x * other,
-                    y: self.y * other,
-                    z: self.z * other,
-                    w: self.w * other
-                }
-            }
+impl_op! { Mul,
+    fn mul(self: Quaternion, other: f32) -> Quaternion {
+        Quaternion {
+            x: self.x * other,
+            y: self.y * other,
+            z: self.z * other,
+            w: self.w * other
         }
-        
-        impl_ref_ops! { impl Mul for Quaternion, f32, mul, Quaternion }
     }
 }
 
-impl_mul_Quaternion_Scalar!();
+impl_op! { Mul,
+    fn mul(self: Quaternion, other: Vector3) -> Vector3 {
+        let p = Quaternion {
+            x: other.x,
+            y: other.y,
+            z: other.z,
+            w: 0.0
+        };
 
-macro_rules! impl_mul_Quaternion_Vector {
-    () => {
-        impl Mul<Vector3> for Quaternion {
-            type Output = Vector3;
-            
-            fn mul(self, other: Vector3) -> Vector3 {
-                let p = Quaternion {
-                    x: other.x,
-                    y: other.y,
-                    z: other.z,
-                    w: 0.0
-                };
-                
-                let p_prime = self * other * self.inverse();
-                
-                Vector3 {
-                    x: p_prime.x,
-                    y: p_prime.y,
-                    z: p_prime.z
-                }
-            }
+        let p_prime = self * other * self.inverse();
+
+        Vector3 {
+            x: p_prime.x,
+            y: p_prime.y,
+            z: p_prime.z
         }
-        
-        impl_ref_ops! { impl Mul for Quaternion, Vector3, mul, Quaternion }
     }
 }
-
-impl_mul_Quaternion_Vector!();
 
 mod test {
     #[test]

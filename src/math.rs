@@ -44,10 +44,8 @@ pub trait ApproxEq<Other = Self> where Other: ?Sized {
 
 macro_rules! impl_approx_eq {
     ($t: ty, $epsilon:expr) => {
-        impl ApproxEq for $t {
-            type Output = bool;
-            
-            fn approx_eq(self, other: $t) -> bool {
+        impl_op! { ApproxEq, 
+            fn approx_eq(self: $t, other: $t) -> bool {
                 if (self - other).abs() <= $epsilon {
                     return true;
                 }
@@ -64,8 +62,6 @@ macro_rules! impl_approx_eq {
                 false
             }
         }
-        
-        impl_ref_ops! { impl ApproxEq for $t, $t, approx_eq, bool }
     }
 }
 
