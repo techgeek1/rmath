@@ -1,7 +1,9 @@
 use std::ops::*;
+use std::f32::EPSILON;
+use std::f32::consts::PI;
 use Vector3;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone)]
 pub struct Quaternion {
     pub x: f32,
     pub y: f32,
@@ -17,7 +19,7 @@ impl Quaternion {
         http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
     */
     
-    pub const IDENTITY Quaternion { x: 0.0, y: 0.0, z: 0.0, w: 1.0 };
+    pub const IDENTITY : Quaternion = Quaternion { x: 0.0, y: 0.0, z: 0.0, w: 1.0 };
     
     pub fn new(x: f32, y: f32, z: f32, w: f32) -> Quaternion {
         Quaternion {
@@ -79,28 +81,50 @@ impl Quaternion {
     }
     
     pub fn to_euler(&self) -> Vector3 {
+        let y_sqr = self.y * self.y;
         
+        let sin_z = 2.0 * (self.w * self.x + self.y * self.z);
+        let cos_z = -1.0 * (self.x * self.x + y_sqr);
+        
+        let sin_x = 2.0 * (self.w * self.y - self.z * self.z);
+        
+        let sin_y = 2.0 * (self.w * self.z + self.x * self.y);
+        let cos_y = -1.0 * (y_sqr + self.z * self.z);
+        
+        Vector3 {
+            x: if sin_x.abs() > 1.0 {
+                (PI / 2.0) * sin_x.signum()
+            }
+            else {
+                sin_x.asin()
+            },
+            y: sin_y.atan2(cos_y),
+            z: sin_z.atan2(cos_z)
+        }
     }
 
     pub fn to_angle_axis(&self, out_angle: &mut f32, out_axis: &mut Vector3) {
-        if self.w > 1.0 {
-            self.normalize();
+        let q: Quaternion = if self.w > 1.0 {
+            self.normalized()
         }
+        else {
+            *self
+        };
         
-        out_angle = 2.0 * self.q.w.acos();
-        let s = (1.0 - self.w * self.w).sqrt();
-        if (s < 0.00001) {
-            out_axis = Vector3 {
-                x: self.x,
-                y: self.y,
-                z: self.z
+        *out_angle = 2.0 * q.w.acos();
+        let s = (1.0 - q.w * q.w).sqrt();
+        if s < EPSILON {
+            *out_axis = Vector3 {
+                x: q.x,
+                y: q.y,
+                z: q.z
             };
         }
         else {
-            out_axis = Vector3 {
-                x: self.x / s,
-                y: self.y / s,
-                x: self.z / s
+            *out_axis = Vector3 {
+                x: q.x / s,
+                y: q.y / s,
+                z: q.z / s
             };
         }
     }
@@ -131,7 +155,7 @@ impl Quaternion {
     
     pub fn conjugate(&self) -> Quaternion {
         Quaternion {
-            x: -self.x
+            x: -self.x,
             y: -self.y,
             z: -self.z,
             w: self.w
@@ -166,18 +190,18 @@ impl Quaternion {
         }
     }
 
-    pub fn slerp_to(&self, other: Quaternion, t: f32) -> Quaternion {
+    pub fn slerp_to(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
         unimplemented!();
     }
     
-    pub fn squad_to(&self, other: Quaternion, t: f32) -> Quaternion {
+    pub fn squad_to(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
         unimplemented!();
     }
 }
 
 impl PartialEq for Quaternion {
     fn eq(&self, other: &Quaternion) -> bool {
-       dot(*self, *other) > 1.0 - std::f32::EPSILON; 
+       Quaternion::dot(*self, *other) > 1.0 - EPSILON
     }
 }
 
@@ -250,9 +274,129 @@ impl_op! { Mul,
     }
 }
 
+#[cfg(test)]
 mod test {
-    use ApproxEq;
     use {Vector3, Quaternion};
+    
+    #[test]
+    fn constants() {
+        
+    }
+    
+    #[test]
+    fn construct() {
+        
+    }
+    
+    #[test]
+    fn from_direction() {
+        
+    }
+    
+    #[test]
+    fn from_orientation() {
+        
+    }
+    
+    #[test]
+    fn from_euler() {
+        
+    }
+    
+    #[test]
+    fn from_axis_angle() {
+        
+    }
+    
+    #[test]
+    fn orward() {
+        
+    }
+    
+    #[test]
+    fn right() {
+        
+    }
+    
+    #[test]
+    fn up() {
+        
+    }
+    
+    #[test]
+    fn to_euler() {
+        
+    }
+    
+    #[test]
+    fn to_angle_axis() {
+        
+    }
+    
+    #[test]
+    fn dot() {
+        
+    }
+    
+    #[test]
+    fn scale() {
+        
+    }
+    
+    #[test]
+    fn inverse() {
+        
+    }
+    
+    #[test]
+    fn conjugate() {
+        
+    }
+    
+    #[test]
+    fn magnitude() {
+        
+    }
+    
+    #[test]
+    fn sqr_magnitude() {
+        
+    }
+    
+    #[test]
+    fn normalized() {
+        
+    }
+    
+    #[test]
+    fn normalize() {
+        
+    }
+    
+    #[test]
+    fn slerp() {
+        
+    }
+    
+    #[test]
+    fn squad() {
+        
+    }
+    
+    #[test]
+    fn add_quaternion() {
+        
+    }
+    
+    #[test]
+    fn sub_quaternion() {
+        
+    }
+   
+    #[test]
+    fn mul_quaternion() {
+        
+    }
     
     #[test]
     fn mul_quaternion_vector() {
@@ -262,5 +406,10 @@ mod test {
         let v_rot = q * v;
         
         assert_approx_eq!(v, v_rot);
+    }
+    
+    #[test]
+    fn mul_quaternion_scalar() {
+        
     }
 }
