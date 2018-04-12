@@ -14,6 +14,7 @@ impl Quaternion {
     /*
         Note: Use meh later https://www.wikiwand.com/en/Quaternions_and_spatial_rotation#/The_conjugation_operation
         https://www.3dgep.com/understanding-quaternions/#Adding_and_Subtracting_Quaternions
+        http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
     */
     
     pub const IDENTITY Quaternion { x: 0.0, y: 0.0, z: 0.0, w: 1.0 };
@@ -36,28 +37,33 @@ impl Quaternion {
     }
 
     pub fn from_euler(euler: Vector3) -> Quaternion{
-        unimplemented!();
+        let e = euler * 0.5;
+        
+        let cos_x = e.x.cos();// pitch
+        let sin_x = e.x.sin();
+        let cos_y = e.y.cos();// yaw
+        let sin_y = e.y.sin();
+        let cos_z = e.z.cos();// roll
+        let sin_z = e.z.sin();
+        
+        Quaternion {
+            x: cos_y * sin_z * cos_x - sin_y * sin_z * sin_x,
+            y: cos_y * cos_z * sin_x + sin_y * cos_z * sin_x,
+            z: sin_y * cos_z * cos_x - sin_y * sin_z * cos_x,
+            w: cos_y * cos_z * cos_x + cos_y * sin_z * sin_x
+        }
     }
 
     pub fn from_angle_axis(angle: f32, axis: Vector3) -> Quaternion {
-        unimplemented!();
-    }
-
-    pub fn to_angle_axis(&self, out_angle: &mut f32, out_axis: &mut Vector3) {
-        unimplemented!();
-    }
-    
-    pub fn to_euler(&self) -> Vector3 {
-        let mut euler = self.to_euler_rad();
-        euler.x = euler.x.to_degrees();
-        euler.y = euler.y.to_degrees();
-        euler.z = euler.z.to_degrees();
+        let a = angle / 2.0;
+        let sin_angle = a.sin();
         
-        euler
-    }
-    
-    pub fn to_euler_rad(&self) -> Vector3 {
-        unimplemented!();
+        Quaternion {
+            x: axis.x * sin_angle,
+            y: axis.y * sin_angle,
+            z: axis.z * sin_angle,
+            w: a.cos()
+        }
     }
     
     pub fn forward(&self) -> Vector3 {
@@ -70,6 +76,33 @@ impl Quaternion {
     
     pub fn up(&self) -> Vector3 {
         unimplemented!();
+    }
+    
+    pub fn to_euler(&self) -> Vector3 {
+        
+    }
+
+    pub fn to_angle_axis(&self, out_angle: &mut f32, out_axis: &mut Vector3) {
+        if self.w > 1.0 {
+            self.normalize();
+        }
+        
+        out_angle = 2.0 * self.q.w.acos();
+        let s = (1.0 - self.w * self.w).sqrt();
+        if (s < 0.00001) {
+            out_axis = Vector3 {
+                x: self.x,
+                y: self.y,
+                z: self.z
+            };
+        }
+        else {
+            out_axis = Vector3 {
+                x: self.x / s,
+                y: self.y / s,
+                x: self.z / s
+            };
+        }
     }
     
     pub fn dot(a: Quaternion, b: Quaternion) -> f32 {
@@ -184,17 +217,6 @@ impl_op! { Mul,
 }
 
 impl_op! { Mul,
-    fn mul(self: Quaternion, other: f32) -> Quaternion {
-        Quaternion {
-            x: self.x * other,
-            y: self.y * other,
-            z: self.z * other,
-            w: self.w * other
-        }
-    }
-}
-
-impl_op! { Mul,
     fn mul(self: Quaternion, other: Vector3) -> Vector3 {
         let x = self.x * 2.0;
         let y = self.y * 2.0;
@@ -213,6 +235,17 @@ impl_op! { Mul,
             x: (1.0 - (yy + zz)) * other.x + (xy - wz) * other.y + (xz + wy) * other.z,
             y: (xy + wz) * other.x + (1.0 - (xx + zz)) * other.y + (yz - wx) * other.z,
             z: (xz - wy) * other.x + (yz + wx) * other.y + (1.0 - (xx + yy)) * other.z
+        }
+    }
+}
+
+impl_op! { Mul,
+    fn mul(self: Quaternion, other: f32) -> Quaternion {
+        Quaternion {
+            x: self.x * other,
+            y: self.y * other,
+            z: self.z * other,
+            w: self.w * other
         }
     }
 }
