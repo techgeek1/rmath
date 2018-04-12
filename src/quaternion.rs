@@ -1,29 +1,23 @@
 use std::ops::*;
-use vector3::Vector3;
+use Vector3;
 
 #[derive(Copy, Clone, PartialEq)]
-struct Quaternion {
-    x: f32,
-    y: f32,
-    z: f32,
-    w: f32
+pub struct Quaternion {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32
 }
 
 #[allow(dead_code)]
 impl Quaternion {
     /*
         Note: Use meh later https://www.wikiwand.com/en/Quaternions_and_spatial_rotation#/The_conjugation_operation
+        https://www.3dgep.com/understanding-quaternions/#Adding_and_Subtracting_Quaternions
     */
     
-    pub fn identity() -> Quaternion {
-        Quaternion {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0
-        }
-    }
-
+    pub const IDENTITY Quaternion { x: 0.0, y: 0.0, z: 0.0, w: 1.0 };
+    
     pub fn new(x: f32, y: f32, z: f32, w: f32) -> Quaternion {
         Quaternion {
             x: x,
@@ -34,7 +28,7 @@ impl Quaternion {
     }
 
     pub fn from_direction(forward: Vector3) -> Quaternion {
-        unimplemented!();
+        Quaternion::from_orientation(forward, Vector3::UP)
     }
 
     pub fn from_orientation(forward: Vector3, up: Vector3) -> Quaternion {
@@ -49,19 +43,24 @@ impl Quaternion {
         unimplemented!();
     }
 
-    pub fn to_angle_axis(&self, outAngle: &mut f32, outAxis: &mut Vector3) {
+    pub fn to_angle_axis(&self, out_angle: &mut f32, out_axis: &mut Vector3) {
         unimplemented!();
     }
     
     pub fn to_euler(&self) -> Vector3 {
-        unimplemented!();
+        let mut euler = self.to_euler_rad();
+        euler.x = euler.x.to_degrees();
+        euler.y = euler.y.to_degrees();
+        euler.z = euler.z.to_degrees();
+        
+        euler
     }
     
     pub fn to_euler_rad(&self) -> Vector3 {
         unimplemented!();
     }
     
-    pub fn forward(&self) -> Vectro3 {
+    pub fn forward(&self) -> Vector3 {
         unimplemented!();
     }
     
@@ -72,13 +71,22 @@ impl Quaternion {
     pub fn up(&self) -> Vector3 {
         unimplemented!();
     }
-
+    
     pub fn dot(a: Quaternion, b: Quaternion) -> f32 {
         a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
     }
+    
+    pub fn scale(q: Quaternion, scale: f32) -> Quaternion {
+        Quaternion {
+            x: q.x * scale,
+            y: q.y * scale,
+            z: q.z * scale,
+            w: q.w * scale
+        }
+    }
 
     pub fn inverse(&self) -> Quaternion {
-        let sqr_norm = self.sqr_norm();
+        let sqr_norm = self.sqr_magnitude();
         
         Quaternion {
             x: -self.x / sqr_norm,
@@ -87,7 +95,16 @@ impl Quaternion {
             w: self.w / sqr_norm
         }
     }
-
+    
+    pub fn conjugate(&self) -> Quaternion {
+        Quaternion {
+            x: -self.x
+            y: -self.y,
+            z: -self.z,
+            w: self.w
+        }
+    }
+    
     pub fn magnitude(&self) -> f32 {
         (self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w).sqrt()
     }
@@ -97,7 +114,7 @@ impl Quaternion {
     }
     
     pub fn normalize(&mut self) {
-        let mag = 1.0 / self.magnitude();
+        let mag = self.magnitude();
         
         self.x = self.x / mag;
         self.y = self.x / mag;
@@ -106,9 +123,16 @@ impl Quaternion {
     }
     
     pub fn normalized(&self) -> Quaternion {
-        unimplemented!();
+        let mag = self.magnitude();
+        
+        Quaternion {
+            x: self.x / mag,
+            y: self.y / mag,
+            z: self.z / mag,
+            w: self.w / mag
+        }
     }
-    
+
     pub fn slerp_to(&self, other: Quaternion, t: f32) -> Quaternion {
         unimplemented!();
     }
@@ -117,6 +141,14 @@ impl Quaternion {
         unimplemented!();
     }
 }
+
+impl PartialEq for Quaternion {
+    fn eq(&self, other: &Quaternion) -> bool {
+       dot(*self, *other) > 1.0 - std::f32::EPSILON; 
+    }
+}
+
+impl Eq for Quaternion {}
 
 impl_op! { Add,
     fn add(self: Quaternion, other: Quaternion) -> Quaternion {
@@ -164,24 +196,31 @@ impl_op! { Mul,
 
 impl_op! { Mul,
     fn mul(self: Quaternion, other: Vector3) -> Vector3 {
-        let p = Quaternion {
-            x: other.x,
-            y: other.y,
-            z: other.z,
-            w: 0.0
-        };
-
-        let p_prime = self * other * self.inverse();
-
+        let x = self.x * 2.0;
+        let y = self.y * 2.0;
+        let z = self.z * 2.0;
+        let xx = self.x * x;
+        let yy = self.y * y;
+        let zz = self.z * z;
+        let xy = self.x * y;
+        let xz = self.x * z;
+        let yz = self.y * z;
+        let wx = self.w * x;
+        let wy = self.w * y;
+        let wz = self.w * z;
+        
         Vector3 {
-            x: p_prime.x,
-            y: p_prime.y,
-            z: p_prime.z
+            x: (1.0 - (yy + zz)) * other.x + (xy - wz) * other.y + (xz + wy) * other.z,
+            y: (xy + wz) * other.x + (1.0 - (xx + zz)) * other.y + (yz - wx) * other.z,
+            z: (xz - wy) * other.x + (yz + wx) * other.y + (1.0 - (xx + yy)) * other.z
         }
     }
 }
 
 mod test {
+    use ApproxEq;
+    use {Vector3, Quaternion};
+    
     #[test]
     fn mul_quaternion_vector() {
         let v = Vector3::ONE;

@@ -1,24 +1,21 @@
 use std::ops::*;
 use std::f32::EPSILON;
 use std::fmt;
-use math::*;
-
-// TODO:
-// - Implement all reference variants for operators
+use {ApproxEq, Clamp, Clamp01};
 
 #[derive(Clone, Copy)]
-struct Vector3 {
-    x: f32,
-    y: f32,
-    z: f32
+pub struct Vector3 {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32
 }
 
 impl Vector3 {
-    #[allow(dead_code)] const ZERO: Vector3 = Vector3{ x: 0.0, y: 0.0, z: 0.0 };
-    #[allow(dead_code)] const ONE: Vector3 = Vector3 { x: 1.0, y: 1.0, z: 1.0 };
-    #[allow(dead_code)] const FORWARD: Vector3 = Vector3 { x: 0.0, y: 0.0, z: 1.0 };
-    #[allow(dead_code)] const RIGHT: Vector3 = Vector3 { x: 1.0, y: 0.0, z: 0.0 };
-    #[allow(dead_code)] const UP: Vector3 = Vector3 { x: 0.0, y: 1.0, z: 0.0 };
+    pub const ZERO: Vector3 = Vector3{ x: 0.0, y: 0.0, z: 0.0 };
+    pub const ONE: Vector3 = Vector3 { x: 1.0, y: 1.0, z: 1.0 };
+    pub const FORWARD: Vector3 = Vector3 { x: 0.0, y: 0.0, z: 1.0 };
+    pub const RIGHT: Vector3 = Vector3 { x: 1.0, y: 0.0, z: 0.0 };
+    pub const UP: Vector3 = Vector3 { x: 0.0, y: 1.0, z: 0.0 };
 
     pub fn new(x: f32, y: f32, z: f32) -> Vector3 {
         Vector3 {
@@ -104,7 +101,7 @@ impl Vector3 {
     }
 
     
-    pub fn lerp_to(start: Vector3, end: Vector3, t: f32) -> Vector3 {
+    pub fn lerp(start: Vector3, end: Vector3, t: f32) -> Vector3 {
         let alpha = t.clamp01();
 
         Vector3 {
@@ -114,37 +111,12 @@ impl Vector3 {
         }
     }
 
-    pub fn lerp_to_unclamped(start: Vector3, end: Vector3, t: f32) -> Vector3 {
+    pub fn lerp_unclamped(start: Vector3, end: Vector3, t: f32) -> Vector3 {
         Vector3 {
             x: start.x + (end.x - start.x) * t,
             y: start.y + (end.y - start.y) * t,
             z: start.z + (end.z - start.z) * t
         }
-    }
-
-    pub fn slerp_to(start: Vector3, end: Vector3, t: f32) -> Vector3 {
-        let alpha = t.clamp01();
-        let dot = Vector3::dot(start, end)
-            .clamp(-1.0, 1.0);
-        
-        let theta = dot.acos() * alpha;
-        
-        let mut relative = end - start * dot;
-        relative.normalize();
-
-        (start * theta.cos()) + (relative * theta.sin())
-    }
-
-    pub fn slerp_to_unclamped(start: Vector3, end: Vector3, t: f32) -> Vector3 {
-        let dot = Vector3::dot(start, end)
-            .clamp(-1.0, 1.0);
-        
-        let theta = dot.acos() * t;
-        
-        let mut relative = end - start * dot;
-        relative.normalize();
-
-        (start * theta.cos()) + (relative * theta.sin())
     }
 
     pub fn project(v: Vector3, normal: Vector3) -> Vector3 {
@@ -174,13 +146,13 @@ impl Vector3 {
 }
 
 // Formatting
-impl ToString for Vector3 {
-    fn to_string(&self) -> String {
-        format!("({}, {}, {})", self.x, self.y, self.z)
+impl fmt::Debug for Vector3 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {}, {})", self.x, self.y, self.z)
     }
 }
 
-impl fmt::Debug for Vector3 {
+impl fmt::Display for Vector3 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "({}, {}, {})", self.x, self.y, self.z)
     }
@@ -453,6 +425,27 @@ mod tests {
         let reflected = Vector3::reflect(vector, normal);
         
         assert_eq!(reflected, Vector3::new(-1.0, 0.0, 1.0));
+    }
+    
+    #[test]
+    fn lerp() {
+        let a = Vector3::ZERO;
+        let b = Vector3::RIGHT;
+        
+        assert_approx_eq!(Vector3::lerp(a, b, 0.0), Vector3::ZERO);
+        assert_approx_eq!(Vector3::lerp(a, b, 0.5), Vector3::new(0.5, 0.0, 0.0));
+        assert_approx_eq!(Vector3::lerp(a, b, 1.0), Vector3::RIGHT);
+    }
+    
+    #[test]
+    fn lerp_unclamped() {
+        let a = Vector3::ZERO;
+        let b = Vector3::RIGHT;
+        
+        assert_approx_eq!(Vector3::lerp_unclamped(a, b, -1.0), Vector3::new(-1.0, 0.0, 0.0));
+        assert_approx_eq!(Vector3::lerp_unclamped(a, b, 0.0), Vector3::ZERO);
+        assert_approx_eq!(Vector3::lerp_unclamped(a, b, 1.0), Vector3::RIGHT);
+        assert_approx_eq!(Vector3::lerp_unclamped(a, b, 2.0), Vector3::new(2.0, 0.0, 0.0));
     }
     
     // Operators
