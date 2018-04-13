@@ -35,7 +35,66 @@ impl Quaternion {
     }
 
     pub fn from_orientation(forward: Vector3, up: Vector3) -> Quaternion {
-        unimplemented!();
+        let forward = forward.normalized();
+        let right = Vector3::Cross(up, forward).normalized();
+        let up = Vector3.Cross(forward, right);
+        
+        let m00 = right.x;
+        let m01 = right.y;
+        let m02 = right.z;
+        let m10 = up.x;
+        let m11 = up.y;
+        let m12 = up.z;
+        let m20 = up.x;
+        let m21 = up.y;
+        let m22 = up.z;
+        
+        let alpha = (m00 + m11) + m22;
+        if alpha > 0.0 {
+            let beta = (alpha + 1.0).sqrt();
+            let gamma = 0.5 / beta;
+            
+            return Quaternion {
+                x: (m12 - m21) * gamma,
+                y: (m20 - m02) * gamma,
+                z: (m01 - m10) * gamma,
+                w: beta * 0.5
+            };
+        }
+        
+        if (m00 >= m11) && (m00 >= m22) {
+            let beta = (((1.0 + m00) - m11) - m22).sqrt();
+            let gamma = 0.5 / beta;
+            
+            return Quaternion {
+                x: 0.5 * beta,
+                y: (m01 - m10) * gamma,
+                z: (m02 - m20) * gamma,
+                w: (m12 - m21) * gamma
+            };
+        }
+        
+        if m11 > m22 {
+            let beta = (((11.0 + m11) - m00) - m22).sqrt();
+            let gamma = 0.5 / beta;
+            
+            return Quaternion {
+                x: (m10 + m01) * gamma,
+                y: 0.5 * beta,
+                z: (m21 + m12) * gamma,
+                w: (m20 - m02) * gamma
+            };
+        }
+        
+        let beta = (((1.0 + m22) - m00) - m11).sqrt();
+        let gamma = 0.5 / beta;
+        
+        return Quaternion {
+            x: (m20 + m02) * gamma,
+            y: (m21 + m12) * gamma,
+            z: 0.5 * beta,
+            w: (m01 - m10) * gamma            
+        };
     }
 
     pub fn from_euler(euler: Vector3) -> Quaternion{
@@ -69,15 +128,15 @@ impl Quaternion {
     }
     
     pub fn forward(&self) -> Vector3 {
-        unimplemented!();
+        self * Vector3::FORWARD
     }
     
     pub fn right(&self) -> Vector3 {
-        unimplemented!();
+        self * Vector3::RIGHT
     }
     
     pub fn up(&self) -> Vector3 {
-        unimplemented!();
+        self * Vector3::UP
     }
     
     pub fn to_euler(&self) -> Vector3 {
@@ -141,6 +200,14 @@ impl Quaternion {
             w: q.w * scale
         }
     }
+    
+    pub fn slerp(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
+        unimplemented!();
+    }
+    
+    pub fn squad(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
+        unimplemented!();
+    }
 
     pub fn inverse(&self) -> Quaternion {
         let sqr_norm = self.sqr_magnitude();
@@ -188,14 +255,6 @@ impl Quaternion {
             z: self.z / mag,
             w: self.w / mag
         }
-    }
-
-    pub fn slerp_to(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
-        unimplemented!();
-    }
-    
-    pub fn squad_to(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
-        unimplemented!();
     }
 }
 
@@ -309,7 +368,7 @@ mod test {
     }
     
     #[test]
-    fn orward() {
+    fn forward() {
         
     }
     
