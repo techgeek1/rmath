@@ -36,8 +36,8 @@ impl Quaternion {
 
     pub fn from_orientation(forward: Vector3, up: Vector3) -> Quaternion {
         let forward = forward.normalized();
-        let right = Vector3::Cross(up, forward).normalized();
-        let up = Vector3.Cross(forward, right);
+        let right = Vector3::cross(up, forward).normalized();
+        let up = Vector3::cross(forward, right);
         
         let m00 = right.x;
         let m01 = right.y;
