@@ -2,6 +2,7 @@ use std::ops::*;
 use std::f32::EPSILON;
 use std::f32::consts::PI;
 use Vector3;
+use Clamp01;
 
 #[derive(Copy, Clone)]
 pub struct Quaternion {
@@ -202,10 +203,20 @@ impl Quaternion {
     }
     
     pub fn slerp(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
+        let t = t.clamp01();
+        Quaternion::slerp_unclamped(from, to, t)
+    }
+    
+    pub fn slerp_unclamped(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
         unimplemented!();
     }
     
     pub fn squad(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
+        let t = t.clamp01();
+        Quaternion::squad_unclamped(from, to, t)
+    }
+    
+    pub fn squad_unclamped(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
         unimplemented!();
     }
 
