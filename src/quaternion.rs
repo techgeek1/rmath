@@ -1,8 +1,13 @@
-use std::ops::*;
-use std::f32::EPSILON;
-use std::f32::consts::PI;
+use std::ops::{ Add, Sub, Mul, AddAssign, SubAssign, MulAssign };
+use std::cmp::{ PartialEq, Eq };
+use std::fmt;
+
+use {ApproxEq, Clamp01};
+use consts::{ EPSILON, PI, DEG2RAD, RAD2DEG };
 use Vector3;
-use Clamp01;
+
+const SIN_45: f32 = 0.8509035;
+const COS_45: f32 = 0.5253219;
 
 #[derive(Copy, Clone)]
 pub struct Quaternion {
@@ -15,9 +20,11 @@ pub struct Quaternion {
 #[allow(dead_code)]
 impl Quaternion {
     /*
-        Note: Use meh later https://www.wikiwand.com/en/Quaternions_and_spatial_rotation#/The_conjugation_operation
+        Notes:
+        https://www.wikiwand.com/en/Quaternions_and_spatial_rotation#/The_conjugation_operation
         https://www.3dgep.com/understanding-quaternions/#Adding_and_Subtracting_Quaternions
         http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
+        http://number-none.com/product/Understanding%20Slerp,%20Then%20Not%20Using%20It/
     */
     
     pub const IDENTITY : Quaternion = Quaternion { x: 0.0, y: 0.0, z: 0.0, w: 1.0 };
@@ -97,21 +104,59 @@ impl Quaternion {
             w: (m01 - m10) * gamma            
         };
     }
-
-    pub fn from_euler(euler: Vector3) -> Quaternion{
-        let e = euler * 0.5;
+    
+    pub fn from_euler(euler: Vector3) -> Quaternion {
+        let euler = euler * DEG2RAD;
         
-        let cos_x = e.x.cos();// pitch
-        let sin_x = e.x.sin();
-        let cos_y = e.y.cos();// yaw
-        let sin_y = e.y.sin();
-        let cos_z = e.z.cos();// roll
-        let sin_z = e.z.sin();
+        Quaternion::from_euler_components_rad(euler.x, euler.y, euler.z)
+    }
+
+    pub fn from_euler_components(x: f32, y: f32, z: f32) -> Quaternion {
+        Quaternion::from_euler_components_rad(
+            x * DEG2RAD,
+            y * DEG2RAD,
+            z * DEG2RAD
+        )
+    }
+    
+    pub fn from_euler_rad(euler: Vector3) -> Quaternion{
+        Quaternion::from_euler_components_rad(euler.x, euler.y, euler.z)
+    }
+    
+    
+    pub fn from_euler_components_rad(x: f32, y: f32, z: f32) -> Quaternion {
+        let x = x / 2.0;
+        let y = y / 2.0;
+        let z = z / 2.0;
+        
+        // Pitch
+        let sin_x = if x.abs().approx_eq(90.0) {
+            SIN_45 * x.signum()
+        }
+        else {
+            x.sin()
+        };
+        
+        let cos_x = if x.abs().approx_eq(90.0) {
+            COS_45 * x.signum()
+        }
+        else {
+            x.cos()
+        };
+        
+        // Yaw
+        let sin_y = y.sin();
+        let cos_y = y.cos();
+        
+        // Roll
+        let sin_z = z.sin();
+        let cos_z = z.cos();
+        
         
         Quaternion {
             x: cos_y * sin_z * cos_x - sin_y * sin_z * sin_x,
-            y: cos_y * cos_z * sin_x + sin_y * cos_z * sin_x,
-            z: sin_y * cos_z * cos_x - sin_y * sin_z * cos_x,
+            y: sin_y * cos_z * cos_x - sin_y * sin_z * cos_x,
+            z: cos_y * cos_z * sin_x + sin_y * cos_z * sin_x,
             w: cos_y * cos_z * cos_x + cos_y * sin_z * sin_x
         }
     }
@@ -141,25 +186,37 @@ impl Quaternion {
     }
     
     pub fn to_euler(&self) -> Vector3 {
+        self.to_euler_rad() * RAD2DEG
+    }
+    
+    pub fn to_euler_rad(&self) -> Vector3 {
+        let x_sqr = self.x * self.x;
         let y_sqr = self.y * self.y;
+        let z_sqr = self.z * self.z;
+        let w_sqr = self.w * self.w;
         
-        let sin_z = 2.0 * (self.w * self.x + self.y * self.z);
-        let cos_z = -1.0 * (self.x * self.x + y_sqr);
+        let unit = x_sqr + y_sqr + z_sqr + w_sqr;
+        let test = self.x * self.y + self.z * self.w;
+        if test > 0.5 * unit {
+            return Vector3 {
+                x: PI / 2.0,
+                y: 2.0 * self.x.atan2(self.w),
+                z: 0.0
+            };
+        }
         
-        let sin_x = 2.0 * (self.w * self.y - self.z * self.z);
-        
-        let sin_y = 2.0 * (self.w * self.z + self.x * self.y);
-        let cos_y = -1.0 * (y_sqr + self.z * self.z);
+        if test < -0.5 * unit {
+            return Vector3 {
+                x: -PI / 2.0,
+                y: -2.0 * self.x.atan2(self.y),
+                z: 0.0
+            };
+        }
         
         Vector3 {
-            x: if sin_x.abs() > 1.0 {
-                (PI / 2.0) * sin_x.signum()
-            }
-            else {
-                sin_x.asin()
-            },
-            y: sin_y.atan2(cos_y),
-            z: sin_z.atan2(cos_z)
+            x: (2.0 * test / unit).asin(),
+            y: (2.0 * self.y * self.w - 2.0 * self.x * self.z).atan2(x_sqr - y_sqr - z_sqr + w_sqr),
+            z: (2.0 * self.x * self.w - 2.0 * self.y * self.z).atan2(-x_sqr + y_sqr - z_sqr + w_sqr)
         }
     }
 
@@ -202,22 +259,51 @@ impl Quaternion {
         }
     }
     
+    pub fn lerp(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
+        Quaternion::lerp_unclamped(from, to, t.clamp01())
+    }
+    
+    pub fn lerp_unclamped(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
+        from * (1.0 - t) + to * t
+    }
+    
     pub fn slerp(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
-        let t = t.clamp01();
-        Quaternion::slerp_unclamped(from, to, t)
+        Quaternion::slerp_unclamped(from, to, t.clamp01())
     }
     
     pub fn slerp_unclamped(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
-        unimplemented!();
-    }
+        let cos_half_theta = from.w * to.w + from.x * to.x + from.y * to.y + from.z * to.z;
+        if cos_half_theta >= 1.0 {
+            return from;
+        }
+        
+        let b = if cos_half_theta < 0.0 {
+            to.inverse()
+        }
+        else {
+            to
+        };
+        
+        let sin_half_theta = (1.0 - cos_half_theta * cos_half_theta).sqrt();
+        if sin_half_theta.abs() < EPSILON {
+            return Quaternion {
+                x: from.x * 0.5 + b.x * 0.5,
+                y: from.y * 0.5 + b.y * 0.5,
+                z: from.z * 0.5 + b.z * 0.5,
+                w: from.w * 0.5 + b.w * 0.5
+            };
+        }
+        
+        let half_theta = cos_half_theta.acos();
+        let ratio_a = ((1.0 - t) * half_theta).sin() / sin_half_theta;
+        let ratio_b = (t * half_theta).sin() / sin_half_theta;
     
-    pub fn squad(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
-        let t = t.clamp01();
-        Quaternion::squad_unclamped(from, to, t)
-    }
-    
-    pub fn squad_unclamped(from: Quaternion, to: Quaternion, t: f32) -> Quaternion {
-        unimplemented!();
+        Quaternion {
+            x: from.x * ratio_a + b.x * ratio_b,
+            y: from.y * ratio_a + b.y * ratio_b,
+            z: from.z * ratio_a + b.z * ratio_b,
+            w: from.w * ratio_a + b.w * ratio_b
+        }
     }
 
     pub fn inverse(&self) -> Quaternion {
@@ -269,6 +355,18 @@ impl Quaternion {
     }
 }
 
+impl fmt::Debug for Quaternion {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {}, {}, {})", self.x, self.y, self.z, self.w)
+    }
+}
+
+impl fmt::Display for Quaternion {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {}, {}, {})", self.x, self.y, self.z, self.w)
+    }
+}
+
 impl PartialEq for Quaternion {
     fn eq(&self, other: &Quaternion) -> bool {
        Quaternion::dot(*self, *other) > 1.0 - EPSILON
@@ -276,6 +374,12 @@ impl PartialEq for Quaternion {
 }
 
 impl Eq for Quaternion {}
+
+impl_op! { ApproxEq,
+    fn approx_eq(self: Quaternion, other: Quaternion) -> bool {
+        Quaternion::dot(self, other) > 1.0 - EPSILON
+    }
+}
 
 impl_op! { Add,
     fn add(self: Quaternion, other: Quaternion) -> Quaternion {
@@ -312,23 +416,36 @@ impl_op! { Mul,
 
 impl_op! { Mul,
     fn mul(self: Quaternion, other: Vector3) -> Vector3 {
-        let x = self.x * 2.0;
-        let y = self.y * 2.0;
-        let z = self.z * 2.0;
-        let xx = self.x * x;
-        let yy = self.y * y;
-        let zz = self.z * z;
-        let xy = self.x * y;
-        let xz = self.x * z;
-        let yz = self.y * z;
-        let wx = self.w * x;
-        let wy = self.w * y;
-        let wz = self.w * z;
+        let x2 = self.x * 2.0;
+        let y2 = self.y * 2.0;
+        let z2 = self.z * 2.0;
+        let w2 = self.w * 2.0;
+        
+        let xx = self.x * self.x;
+        let yy = self.y * self.y;
+        let zz = self.z * self.z;
+        let ww = self.w * self.w;
+        
+        let xx_x = xx * other.x;
+        let xx_y = xx * other.y;
+        let xx_z = xx * other.z;
+        
+        let yy_x = yy * other.x;
+        let yy_y = yy * other.y;
+        let yy_z = yy * other.z;
+        
+        let zz_x = zz * other.x;
+        let zz_y = zz * other.y;
+        let zz_z = zz * other.z;
+        
+        let ww_x = ww * other.x;
+        let ww_y = ww * other.y;
+        let ww_z = ww * other.z;
         
         Vector3 {
-            x: (1.0 - (yy + zz)) * other.x + (xy - wz) * other.y + (xz + wy) * other.z,
-            y: (xy + wz) * other.x + (1.0 - (xx + zz)) * other.y + (yz - wx) * other.z,
-            z: (xz - wy) * other.x + (yz + wx) * other.y + (1.0 - (xx + yy)) * other.z
+            x: ww_x + (y2 * self.w * other.z) - (z2 * self.w * other.y) + xx_x + (y2 * self.x * other.y) + (z2 * self.x * other.z) - zz_x - yy_x,
+            y: (x2 * self.y * other.x) + yy_y + (z2 * self.y * other.z) + (w2 * self.z * other.x) - zz_y + ww_y - (x2 * self.w * other.z) - xx_y,
+            z: (x2 * self.z * other.x) + (y2 * self.z * other.y) + zz_z - (w2 * self.y * other.x) - yy_z + (w2 * self.x *other.y) - xx_z + ww_z
         }
     }
 }
@@ -343,143 +460,228 @@ impl_op! { Mul,
         }
     }
 }
+    
+impl_op! { AddAssign,
+    fn add_assign(&mut self: Quaternion, other: Quaternion) {
+        self.x = self.x + other.x;
+        self.y = self.y + other.y;
+        self.z = self.z + other.z;
+        self.w = self.w + other.w;
+    }    
+}
+    
+impl_op! { SubAssign,
+    fn sub_assign(&mut self: Quaternion, other: Quaternion) {
+        self.x = self.x - other.x;
+        self.y = self.y - other.y;
+        self.z = self.z - other.z;
+        self.w = self.w - other.w;
+    }    
+}
+    
+impl_op! { MulAssign,
+    fn mul_assign(&mut self: Quaternion, other: Quaternion) {
+        self.x = self.x * other.x;
+        self.y = self.y * other.y;
+        self.z = self.z * other.z;
+        self.w = self.w * other.w;
+    } 
+}
+    
+impl_op! { MulAssign,
+    fn mul_assign(&mut self: Quaternion, other: f32) {
+        self.x = self.x * other;
+        self.y = self.y * other;
+        self.z = self.z * other;
+        self.w = self.w * other;
+    }    
+}
 
 #[cfg(test)]
-mod test {
-    use {Vector3, Quaternion};
+mod tests {
+    use consts::{ DEG2RAD };
+    use {Vector3, Quaternion, ApproxEq};
+    
+    const NINTY_RIGHT_QUAT: Quaternion = Quaternion{ x: 0.0, y: 0.7071068, z: 0.0, w: 0.7071068 };
     
     #[test]
     fn constants() {
-        
+        assert_eq!(Quaternion::IDENTITY, Quaternion::new(0.0, 0.0, 0.0, 1.0));
     }
     
     #[test]
     fn construct() {
-        
+        assert_eq!(Quaternion::new(0.0, 0.0, 0.0, 1.0), Quaternion { x: 0.0, y: 0.0, z: 0.0, w: 1.0 });
     }
     
     #[test]
     fn from_direction() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn from_orientation() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn from_euler() {
+        let q = Quaternion::from_euler(Vector3::new(0.0, 90.0, 0.0));
         
+        assert_approx_eq!(q, NINTY_RIGHT_QUAT);
+    }
+    
+    #[test]
+    fn from_euler_rad() {
+        let q = Quaternion::from_euler_rad(Vector3::new(0.0, 90.0 * DEG2RAD, 0.0));
+        
+        assert_approx_eq!(q, NINTY_RIGHT_QUAT);
+    }
+    
+    #[test]
+    fn from_euler_components() {
+        let q = Quaternion::from_euler_components(0.0, 90.0, 0.0);
+        
+        assert_approx_eq!(q, NINTY_RIGHT_QUAT);
+    }
+    
+    #[test]
+    fn from_euler_components_rad() {
+        let q = Quaternion::from_euler_components_rad(0.0, 90.0 * DEG2RAD, 0.0);
+        
+        assert_approx_eq!(q, NINTY_RIGHT_QUAT);
     }
     
     #[test]
     fn from_axis_angle() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn forward() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn right() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn up() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn to_euler() {
+        let euler = NINTY_RIGHT_QUAT.to_euler();
         
+        assert_approx_eq!(euler, Vector3::new(0.0, 90.0, 0.0));
+    }
+    
+    #[test]
+    fn to_euler_rad() {
+        let euler = NINTY_RIGHT_QUAT.to_euler_rad();
+        
+        assert_approx_eq!(euler, Vector3::new(0.0, 90.0 * DEG2RAD, 0.0));
     }
     
     #[test]
     fn to_angle_axis() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn dot() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn scale() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn inverse() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn conjugate() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn magnitude() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn sqr_magnitude() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn normalized() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn normalize() {
-        
+        unimplemented!();
+    }
+    
+    #[test]
+    fn lerp() {
+        unimplemented!();
+    }
+    
+    #[test]
+    fn lerp_unclamped() {
+        unimplemented!();
     }
     
     #[test]
     fn slerp() {
-        
+        unimplemented!();
     }
     
     #[test]
-    fn squad() {
-        
+    fn slerp_unclamped() {
+        unimplemented!();
     }
     
     #[test]
     fn add_quaternion() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn sub_quaternion() {
-        
+        unimplemented!();
     }
    
     #[test]
     fn mul_quaternion() {
-        
+        unimplemented!();
     }
     
     #[test]
     fn mul_quaternion_vector() {
-        let v = Vector3::ONE;
-        let q = Quaternion::new(0.0, 0.0, 0.0, 1.0);
+        let v = Vector3::FORWARD;
+        let q = Quaternion::from_euler_components(0.0, 90.0, 0.0);
         
         let v_rot = q * v;
         
-        assert_approx_eq!(v, v_rot);
+        assert_approx_eq!(v_rot, Vector3::RIGHT);
     }
     
     #[test]
     fn mul_quaternion_scalar() {
+        let q = Quaternion::new(0.0, 0.0, 0.0, 1.0);
         
+        let q_scaled = q * 2.0;
+        
+        assert_approx_eq!(q_scaled, Quaternion::new(0.0, 0.0, 0.0, 2.0));
     }
 }

@@ -11,6 +11,6 @@ impl Matrix4x4 {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     
 }

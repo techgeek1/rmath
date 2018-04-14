@@ -1,7 +1,9 @@
-use std::ops::*;
-use std::f32::EPSILON;
+use std::ops::{ Add, Sub, Mul, Div, Neg, AddAssign, SubAssign, MulAssign, DivAssign };
+use std::cmp::{ PartialEq, Eq };
 use std::fmt;
+
 use {ApproxEq, Clamp, Clamp01};
+use consts::{ EPSILON };
 
 #[derive(Clone, Copy)]
 pub struct Vector3 {
@@ -269,6 +271,14 @@ impl_op! { AddAssign,
         self.x += other;
         self.y += other;
         self.z += other;
+    }
+}
+    
+impl_op! { SubAssign,
+    fn sub_assign(&mut self: Vector3, other: f32) {
+        self.x -= other;
+        self.y -= other;
+        self.z -= other;
     }
 }
 
