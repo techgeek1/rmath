@@ -3,7 +3,7 @@ use std::cmp::{ PartialEq, Eq };
 use std::fmt;
 
 use {ApproxEq, Clamp01};
-use consts::{ EPSILON, PI, DEG2RAD, RAD2DEG };
+use consts::{ EPSILON, PI };
 use Vector3;
 
 const SIN_45: f32 = 0.8509035;
@@ -48,83 +48,34 @@ impl Quaternion {
         let up = Vector3::cross(forward, right);
         
         let m00 = right.x;
-        let m01 = right.y;
-        let m02 = right.z;
-        let m10 = up.x;
+        let m10 = right.y;
+        let m20 = right.z;
+        let m01 = up.x;
         let m11 = up.y;
-        let m12 = up.z;
-        let m20 = up.x;
-        let m21 = up.y;
-        let m22 = up.z;
+        let m21 = up.z;
+        let m02 = forward.x;
+        let m12 = forward.y;
+        let m22 = forward.z;
         
-        let alpha = (m00 + m11) + m22;
-        if alpha > 0.0 {
-            let beta = (alpha + 1.0).sqrt();
-            let gamma = 0.5 / beta;
-            
-            return Quaternion {
-                x: (m12 - m21) * gamma,
-                y: (m20 - m02) * gamma,
-                z: (m01 - m10) * gamma,
-                w: beta * 0.5
-            };
-        }
-        
-        if (m00 >= m11) && (m00 >= m22) {
-            let beta = (((1.0 + m00) - m11) - m22).sqrt();
-            let gamma = 0.5 / beta;
-            
-            return Quaternion {
-                x: 0.5 * beta,
-                y: (m01 - m10) * gamma,
-                z: (m02 - m20) * gamma,
-                w: (m12 - m21) * gamma
-            };
-        }
-        
-        if m11 > m22 {
-            let beta = (((11.0 + m11) - m00) - m22).sqrt();
-            let gamma = 0.5 / beta;
-            
-            return Quaternion {
-                x: (m10 + m01) * gamma,
-                y: 0.5 * beta,
-                z: (m21 + m12) * gamma,
-                w: (m20 - m02) * gamma
-            };
-        }
-        
-        let beta = (((1.0 + m22) - m00) - m11).sqrt();
-        let gamma = 0.5 / beta;
-        
-        return Quaternion {
-            x: (m20 + m02) * gamma,
-            y: (m21 + m12) * gamma,
-            z: 0.5 * beta,
-            w: (m01 - m10) * gamma            
+        let mut q = Quaternion {
+            x: (1.0 + m00 - m11 - m22).max(0.0).sqrt() / 2.0,
+            y: (1.0 - m00 + m11 - m22).max(0.0).sqrt() / 2.0,
+            z: (1.0 - m00 - m11 + m22).max(0.0).sqrt() / 2.0,
+            w: (1.0 + m00 + m11 + m22).max(0.0).sqrt() / 2.0 
         };
-    }
-    
-    pub fn from_euler(euler: Vector3) -> Quaternion {
-        let euler = euler * DEG2RAD;
-        
-        Quaternion::from_euler_components_rad(euler.x, euler.y, euler.z)
-    }
 
+        q.x *= (m21 - m12).signum();
+        q.y *= (m02 - m20).signum();
+        q.z *= (m10 - m01).signum();
+
+        q
+    }
+    
+    pub fn from_euler(euler: Vector3) -> Quaternion{
+        Quaternion::from_euler_components(euler.x, euler.y, euler.z)
+    }
+    
     pub fn from_euler_components(x: f32, y: f32, z: f32) -> Quaternion {
-        Quaternion::from_euler_components_rad(
-            x * DEG2RAD,
-            y * DEG2RAD,
-            z * DEG2RAD
-        )
-    }
-    
-    pub fn from_euler_rad(euler: Vector3) -> Quaternion{
-        Quaternion::from_euler_components_rad(euler.x, euler.y, euler.z)
-    }
-    
-    
-    pub fn from_euler_components_rad(x: f32, y: f32, z: f32) -> Quaternion {
         let x = x / 2.0;
         let y = y / 2.0;
         let z = z / 2.0;
@@ -186,10 +137,6 @@ impl Quaternion {
     }
     
     pub fn to_euler(&self) -> Vector3 {
-        self.to_euler_rad() * RAD2DEG
-    }
-    
-    pub fn to_euler_rad(&self) -> Vector3 {
         let x_sqr = self.x * self.x;
         let y_sqr = self.y * self.y;
         let z_sqr = self.z * self.z;
@@ -524,42 +471,30 @@ mod tests {
     
     #[test]
     fn from_orientation() {
-        let q = Quaternion::from_orientation(Vector3::RIGHT, Vector3::FORWARD);
+        let q = Quaternion::from_orientation(Vector3::FORWARD, Vector3::RIGHT);
 
-        assert_approx_eq!(q, Quaternion::from_euler_components(0.0, 90.0, 90.0));
+        assert_approx_eq!(q.up(), Vector3::RIGHT);
     }
     
     #[test]
     fn from_euler() {
-        let q = Quaternion::from_euler(Vector3::new(0.0, 90.0, 0.0));
-        
-        assert_approx_eq!(q, RIGHT_QUAT);
-    }
-    
-    #[test]
-    fn from_euler_rad() {
-        let q = Quaternion::from_euler_rad(Vector3::new(0.0, 90.0 * DEG2RAD, 0.0));
+        let q = Quaternion::from_euler(Vector3::new(0.0, 90.0 * DEG2RAD, 0.0));
         
         assert_approx_eq!(q, RIGHT_QUAT);
     }
     
     #[test]
     fn from_euler_components() {
-        let q = Quaternion::from_euler_components(0.0, 90.0, 0.0);
+        let q = Quaternion::from_euler_components(0.0, 90.0 * DEG2RAD, 0.0);
         
         assert_approx_eq!(q, RIGHT_QUAT);
     }
     
     #[test]
-    fn from_euler_components_rad() {
-        let q = Quaternion::from_euler_components_rad(0.0, 90.0 * DEG2RAD, 0.0);
-        
+    fn from_angle_axis() {
+        let q = Quaternion::from_angle_axis(90.0 * DEG2RAD, Vector3::UP);
+
         assert_approx_eq!(q, RIGHT_QUAT);
-    }
-    
-    #[test]
-    fn from_axis_angle() {
-        unimplemented!();
     }
     
     #[test]
@@ -587,19 +522,18 @@ mod tests {
     fn to_euler() {
         let euler = RIGHT_QUAT.to_euler();
         
-        assert_approx_eq!(euler, Vector3::new(0.0, 90.0, 0.0));
-    }
-    
-    #[test]
-    fn to_euler_rad() {
-        let euler = RIGHT_QUAT.to_euler_rad();
-        
         assert_approx_eq!(euler, Vector3::new(0.0, 90.0 * DEG2RAD, 0.0));
     }
     
     #[test]
     fn to_angle_axis() {
-        unimplemented!();
+        let mut angle = 0.0;
+        let mut axis = Vector3::ZERO;
+
+        RIGHT_QUAT.to_angle_axis(&mut angle, &mut axis);
+
+        assert_approx_eq!(angle, 90.0 * DEG2RAD);
+        assert_approx_eq!(axis, Vector3::UP);
     }
     
     #[test]
@@ -705,13 +639,13 @@ mod tests {
     fn mul_quaternion() {
         let q = RIGHT_QUAT;
 
-        assert_approx_eq!(q * q, Quaternion::from_euler_components(0.0, 180.0, 0.0));
+        assert_approx_eq!(q * q, Quaternion::from_euler_components(0.0, 180.0 * DEG2RAD, 0.0));
     }
     
     #[test]
     fn mul_quaternion_vector() {
         let v = Vector3::FORWARD;
-        let q = Quaternion::from_euler_components(0.0, 90.0, 0.0);
+        let q = Quaternion::from_euler_components(0.0, 90.0 * DEG2RAD, 0.0);
         
         let v_rot = q * v;
         
