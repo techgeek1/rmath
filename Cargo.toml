@@ -1,7 +1,6 @@
 [package]
-name = "tech_math"
+name = "rmath"
 version = "0.1.0"
-authors = ["Techgeek1 <austin.rife@gmail.com>"]
+authors = ["Techgeek1"]
 
 [dependencies]
-num = "0.1.42"
