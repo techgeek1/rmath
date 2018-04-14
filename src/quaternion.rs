@@ -338,7 +338,7 @@ impl Quaternion {
         let mag = self.magnitude();
         
         self.x = self.x / mag;
-        self.y = self.x / mag;
+        self.y = self.y / mag;
         self.z = self.z / mag;
         self.w = self.w / mag;
     }
@@ -369,7 +369,7 @@ impl fmt::Display for Quaternion {
 
 impl PartialEq for Quaternion {
     fn eq(&self, other: &Quaternion) -> bool {
-       Quaternion::dot(*self, *other) > 1.0 - EPSILON
+       Quaternion::dot(*self, *other) > (1.0 - EPSILON)
     }
 }
 
@@ -377,7 +377,7 @@ impl Eq for Quaternion {}
 
 impl_op! { ApproxEq,
     fn approx_eq(self: Quaternion, other: Quaternion) -> bool {
-        Quaternion::dot(self, other) > 1.0 - EPSILON
+        Quaternion::dot(self, other) > (1.0 - EPSILON)
     }
 }
 
@@ -502,7 +502,8 @@ mod tests {
     use consts::{ DEG2RAD };
     use {Vector3, Quaternion, ApproxEq};
     
-    const NINTY_RIGHT_QUAT: Quaternion = Quaternion{ x: 0.0, y: 0.7071068, z: 0.0, w: 0.7071068 };
+    const RIGHT_QUAT: Quaternion = Quaternion{ x: 0.0, y: 0.7071068, z: 0.0, w: 0.7071068 };
+    const LEFT_QUAT: Quaternion = Quaternion{ x: 0.0, y: -0.7071068, z: 0.0, w: 0.7071068 };
     
     #[test]
     fn constants() {
@@ -516,40 +517,44 @@ mod tests {
     
     #[test]
     fn from_direction() {
-        unimplemented!();
+        let q = Quaternion::from_direction(Vector3::RIGHT);
+
+        assert_approx_eq!(q, RIGHT_QUAT);
     }
     
     #[test]
     fn from_orientation() {
-        unimplemented!();
+        let q = Quaternion::from_orientation(Vector3::RIGHT, Vector3::FORWARD);
+
+        assert_approx_eq!(q, Quaternion::from_euler_components(0.0, 90.0, 90.0));
     }
     
     #[test]
     fn from_euler() {
         let q = Quaternion::from_euler(Vector3::new(0.0, 90.0, 0.0));
         
-        assert_approx_eq!(q, NINTY_RIGHT_QUAT);
+        assert_approx_eq!(q, RIGHT_QUAT);
     }
     
     #[test]
     fn from_euler_rad() {
         let q = Quaternion::from_euler_rad(Vector3::new(0.0, 90.0 * DEG2RAD, 0.0));
         
-        assert_approx_eq!(q, NINTY_RIGHT_QUAT);
+        assert_approx_eq!(q, RIGHT_QUAT);
     }
     
     #[test]
     fn from_euler_components() {
         let q = Quaternion::from_euler_components(0.0, 90.0, 0.0);
         
-        assert_approx_eq!(q, NINTY_RIGHT_QUAT);
+        assert_approx_eq!(q, RIGHT_QUAT);
     }
     
     #[test]
     fn from_euler_components_rad() {
         let q = Quaternion::from_euler_components_rad(0.0, 90.0 * DEG2RAD, 0.0);
         
-        assert_approx_eq!(q, NINTY_RIGHT_QUAT);
+        assert_approx_eq!(q, RIGHT_QUAT);
     }
     
     #[test]
@@ -559,29 +564,35 @@ mod tests {
     
     #[test]
     fn forward() {
-        unimplemented!();
+        let q = RIGHT_QUAT;
+
+        assert_approx_eq!(q.forward(), Vector3::RIGHT);
     }
     
     #[test]
     fn right() {
-        unimplemented!();
+        let q = RIGHT_QUAT;
+
+        assert_approx_eq!(q.right(), -Vector3::FORWARD);
     }
     
     #[test]
     fn up() {
-        unimplemented!();
+        let q = RIGHT_QUAT;
+
+        assert_approx_eq!(q.up(), Vector3::UP);
     }
     
     #[test]
     fn to_euler() {
-        let euler = NINTY_RIGHT_QUAT.to_euler();
+        let euler = RIGHT_QUAT.to_euler();
         
         assert_approx_eq!(euler, Vector3::new(0.0, 90.0, 0.0));
     }
     
     #[test]
     fn to_euler_rad() {
-        let euler = NINTY_RIGHT_QUAT.to_euler_rad();
+        let euler = RIGHT_QUAT.to_euler_rad();
         
         assert_approx_eq!(euler, Vector3::new(0.0, 90.0 * DEG2RAD, 0.0));
     }
@@ -593,42 +604,64 @@ mod tests {
     
     #[test]
     fn dot() {
-        unimplemented!();
+        let dot = Quaternion::dot(RIGHT_QUAT, RIGHT_QUAT);
+        assert_approx_eq!(dot, 1.0);
+
+        let dot2 = Quaternion::dot(RIGHT_QUAT, LEFT_QUAT);
+        assert_approx_eq!(dot2, 0.0);
     }
     
     #[test]
     fn scale() {
-        unimplemented!();
+        let q = Quaternion::new(0.0, 0.0, 0.0, 1.0);
+        let q_scaled = Quaternion::scale(q, 2.0);
+        
+        assert_approx_eq!(q_scaled, Quaternion::new(0.0, 0.0, 0.0, 2.0));
     }
     
     #[test]
     fn inverse() {
-        unimplemented!();
+        let q = RIGHT_QUAT.inverse();
+        let v = q * Vector3::FORWARD;
+
+        assert_approx_eq!(v, -Vector3::RIGHT);
     }
     
     #[test]
     fn conjugate() {
-        unimplemented!();
+        let qa = RIGHT_QUAT;
+        let qb = LEFT_QUAT;
+
+        assert_approx_eq!(qa.conjugate() * qb.conjugate(), (qa * qb).conjugate());
     }
     
     #[test]
     fn magnitude() {
-        unimplemented!();
+        let q = RIGHT_QUAT;
+
+        assert_approx_eq!(q.magnitude(), (q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w).sqrt());
     }
     
     #[test]
     fn sqr_magnitude() {
-        unimplemented!();
+        let q = RIGHT_QUAT;
+
+        assert_approx_eq!(q.sqr_magnitude(), q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
     }
     
     #[test]
     fn normalized() {
-        unimplemented!();
+        let q_norm = RIGHT_QUAT.normalized();
+
+        assert_approx_eq!(q_norm.magnitude(), 1.0);
     }
     
     #[test]
     fn normalize() {
-        unimplemented!();
+        let mut q_norm = RIGHT_QUAT;
+        q_norm.normalize();
+
+        assert_approx_eq!(q_norm.magnitude(), 1.0);
     }
     
     #[test]
@@ -653,17 +686,26 @@ mod tests {
     
     #[test]
     fn add_quaternion() {
-        unimplemented!();
+        let q = RIGHT_QUAT + RIGHT_QUAT;
+
+        assert_approx_eq!(q, Quaternion::new(0.0, 1.4142136, 0.0, 1.4142136));
     }
     
     #[test]
     fn sub_quaternion() {
-        unimplemented!();
+        let q = RIGHT_QUAT - RIGHT_QUAT;
+
+        assert_approx_eq!(q.x, 0.0);
+        assert_approx_eq!(q.y, 0.0);
+        assert_approx_eq!(q.z, 0.0);
+        assert_approx_eq!(q.w, 0.0);
     }
    
     #[test]
     fn mul_quaternion() {
-        unimplemented!();
+        let q = RIGHT_QUAT;
+
+        assert_approx_eq!(q * q, Quaternion::from_euler_components(0.0, 180.0, 0.0));
     }
     
     #[test]
