@@ -1,6 +1,4 @@
-use {Vector3, Quaternion};
-
-pub struct Vector4(f32, f32, f32, f32);// Temporary struct till vector4s are implemented
+use { Vector4, Quaternion };
 
 pub struct Matrix4x4 {
   pub m00: f32, pub m01: f32, pub m02: f32, pub m03: f32,
@@ -28,10 +26,10 @@ impl Matrix4x4 {
     // TODO: Make a vector4 and implement a better constructor
     fn new(c0: Vector4, c1: Vector4, c2: Vector4, c3: Vector4) -> Matrix4x4 {
         Matrix4x4 {
-            m00: c0.0, m01: c1.0, m02: c2.0, m03: c3.0,
-            m10: c0.1, m11: c1.1, m12: c2.1, m13: c3.1,
-            m20: c0.2, m21: c1.2, m22: c2.2, m23: c3.2,
-            m30: c0.3, m31: c1.3, m32: c2.3, m33: c3.3
+            m00: c0.x, m01: c1.x, m02: c2.x, m03: c3.x,
+            m10: c0.y, m11: c1.y, m12: c2.y, m13: c3.y,
+            m20: c0.z, m21: c1.z, m22: c2.z, m23: c3.z,
+            m30: c0.w, m31: c1.w, m32: c2.w, m33: c3.w
         }
     }
 

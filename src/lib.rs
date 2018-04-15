@@ -11,6 +11,9 @@ pub use clamp::{Clamp, Clamp01};
 mod vector3;
 pub use vector3::Vector3;
 
+mod vector4;
+pub use vector4::Vector4;
+
 mod quaternion;
 pub use quaternion::Quaternion;
 
