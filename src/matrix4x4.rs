@@ -19,10 +19,10 @@ impl Matrix4x4 {
     };
 
     const IDENTITY: Matrix4x4 = Matrix4x4 {
-        m00: 0.0, m01: 0.0, m02: 0.0, m03: 0.0,
-        m10: 0.0, m11: 0.0, m12: 0.0, m13: 0.0,
-        m20: 0.0, m21: 0.0, m22: 0.0, m23: 0.0,
-        m30: 0.0, m31: 0.0, m32: 0.0, m33: 0.0
+        m00: 1.0, m01: 0.0, m02: 0.0, m03: 0.0,
+        m10: 0.0, m11: 1.0, m12: 0.0, m13: 0.0,
+        m20: 0.0, m21: 0.0, m22: 1.0, m23: 0.0,
+        m30: 0.0, m31: 0.0, m32: 0.0, m33: 1.0
     };
 
     // TODO: Make a vector4 and implement a better constructor
