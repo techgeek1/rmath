@@ -600,22 +600,41 @@ mod tests {
     
     #[test]
     fn lerp() {
-        unimplemented!();
+        let q0 = LEFT_QUAT;
+        let q2 = RIGHT_QUAT;
+
+        let diff = (RIGHT_QUAT * LEFT_QUAT.inverse()) * 0.5;
+        let q1 = q0 * diff;
+
+        assert_approx_eq!(q0, Quaternion::lerp(q0, q2, 0.0).normalized());
+        assert_approx_eq!(q2, Quaternion::lerp(q0, q2, 1.0).normalized());
     }
     
     #[test]
     fn lerp_unclamped() {
-        unimplemented!();
+        let q0 = LEFT_QUAT;
+        let q2 = RIGHT_QUAT;
+
+        assert_approx_eq!(q0, Quaternion::lerp(q0, q2, 0.0).normalized());
+        assert_approx_eq!(q2, Quaternion::lerp(q0, q2, 1.0).normalized());
     }
     
     #[test]
     fn slerp() {
-        unimplemented!();
+        let q0 = LEFT_QUAT;
+        let q2 = RIGHT_QUAT;
+
+        assert_approx_eq!(q0, Quaternion::slerp(q0, q2, 0.0).normalized());
+        assert_approx_eq!(q2, Quaternion::slerp(q0, q2, 1.0).normalized());
     }
     
     #[test]
     fn slerp_unclamped() {
-        unimplemented!();
+        let q0 = LEFT_QUAT;
+        let q2 = RIGHT_QUAT;
+        
+        assert_approx_eq!(q0, Quaternion::slerp(q0, q2, 0.0).normalized());
+        assert_approx_eq!(q2, Quaternion::slerp(q0, q2, 1.0).normalized());
     }
     
     #[test]
