@@ -1,3 +1,7 @@
+use {Vector3, Quaternion};
+
+pub struct Vector4(f32, f32, f32, f32);// Temporary struct till vector4s are implemented
+
 pub struct Matrix4x4 {
   pub m00: f32, pub m01: f32, pub m02: f32, pub m03: f32,
   pub m10: f32, pub m11: f32, pub m12: f32, pub m13: f32,
@@ -7,7 +11,37 @@ pub struct Matrix4x4 {
 
 #[allow(dead_code)]
 impl Matrix4x4 {
-  
+    const ZERO: Matrix4x4 = Matrix4x4 {
+        m00: 0.0, m01: 0.0, m02: 0.0, m03: 0.0,
+        m10: 0.0, m11: 0.0, m12: 0.0, m13: 0.0,
+        m20: 0.0, m21: 0.0, m22: 0.0, m23: 0.0,
+        m30: 0.0, m31: 0.0, m32: 0.0, m33: 0.0
+    };
+
+    const IDENTITY: Matrix4x4 = Matrix4x4 {
+        m00: 0.0, m01: 0.0, m02: 0.0, m03: 0.0,
+        m10: 0.0, m11: 0.0, m12: 0.0, m13: 0.0,
+        m20: 0.0, m21: 0.0, m22: 0.0, m23: 0.0,
+        m30: 0.0, m31: 0.0, m32: 0.0, m33: 0.0
+    };
+
+    // TODO: Make a vector4 and implement a better constructor
+    fn new(c0: Vector4, c1: Vector4, c2: Vector4, c3: Vector4) -> Matrix4x4 {
+        Matrix4x4 {
+            m00: c0.0, m01: c1.0, m02: c2.0, m03: c3.0,
+            m10: c0.1, m11: c1.1, m12: c2.1, m13: c3.1,
+            m20: c0.2, m21: c1.2, m22: c2.2, m23: c3.2,
+            m30: c0.3, m31: c1.3, m32: c2.3, m33: c3.3
+        }
+    }
+
+    fn make_from_trs() -> Matrix4x4 {
+        unimplemented!();
+    }
+
+    fn make_from_rotation(q: Quaternion) -> Matrix4x4 {
+        unimplemented!();
+    }
 }
 
 #[cfg(test)]
