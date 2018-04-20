@@ -33,19 +33,3 @@ impl Clamp01 for f32 {
         self
     }
 }
-
-#[allow(unused_imports)]
-mod tests {
-    use approx_eq::ApproxEq;
-    use super::{Clamp, Clamp01};
-    
-    #[test]
-    fn clamp() {
-        assert_approx_eq!(6.0.clamp(0.0, 1.0), 1.0);
-    }
-    
-    #[test]
-    fn clamp01() {
-        assert_approx_eq!(6.0.clamp01(), 1.0);
-    }
-}

@@ -1,21 +1,23 @@
+extern crate num;
+
 #[macro_use]
 mod macros;
-mod consts;
 
+#[macro_use]
 mod approx_eq;
-pub use approx_eq::ApproxEq;
-
 mod clamp;
-pub use clamp::{Clamp, Clamp01};
-
 mod vector3;
-pub use vector3::Vector3;
-
 mod vector4;
-pub use vector4::Vector4;
-
 mod quaternion;
-pub use quaternion::Quaternion;
-
 mod matrix4x4;
+
+pub mod consts;
+pub use approx_eq::ApproxEq;
+pub use clamp::{Clamp, Clamp01};
+pub use vector3::Vector3;
+pub use vector4::Vector4;
+pub use quaternion::Quaternion;
 pub use matrix4x4::Matrix4x4;
+
+#[cfg(test)]
+mod tests;

@@ -6,6 +6,15 @@ pub trait ApproxEq<Other = Self> where Other: ?Sized {
     fn approx_eq(self, other: Other) -> bool;
 }
 
+#[macro_export]
+macro_rules! assert_approx_eq {
+    ($value: expr, $expected: expr) => (
+        if !$value.approx_eq($expected) {
+            panic!("value: {}\nexpected: {}", $value, $expected);
+        }
+    )
+}
+
 macro_rules! impl_approx_eq {
     ($t: ty, $epsilon:expr) => {
         impl_op! { ApproxEq, 
@@ -31,14 +40,3 @@ macro_rules! impl_approx_eq {
 
 impl_approx_eq!(f32, std::f32::EPSILON);
 impl_approx_eq!(f64, std::f64::EPSILON);
-
-#[allow(unused_imports)]
-mod tests {
-    use super::ApproxEq;
-    
-    #[test]
-    fn approx_eq() {
-        assert_approx_eq!(1.0_f32, 1.0_f32);
-        assert_approx_eq!(1.0_f64, 1.0_f64);
-    }
-}

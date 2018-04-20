@@ -1,12 +1,4 @@
 #[allow(unused_macros)]
-macro_rules! assert_approx_eq {
-    ($value: expr, $expected: expr) => (
-        if !$value.approx_eq($expected) {
-            panic!("value: {}\nexpected: {}", $value, $expected);
-        }
-    )
-}
-
 macro_rules! impl_mut_ref_ops {
     ($imp:ident, $t:ty, $u:ty, $method:ident) => {
         impl<'a> $imp<&'a $u> for $t {
