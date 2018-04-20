@@ -5,6 +5,7 @@ use std::fmt;
 use {ApproxEq, Clamp, Clamp01};
 use consts::{ EPSILON };
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Vector3 {
     pub x: f32,

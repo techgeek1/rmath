@@ -1,5 +1,10 @@
-use { Vector4, Quaternion };
+use std::ops::{ Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign };
+use std::cmp::{ PartialEq, Eq };
 
+use { ApproxEq, Vector4, Quaternion };
+
+#[repr(C)]
+#[derive(Clone, Copy)]
 pub struct Matrix4x4 {
   pub m00: f32, pub m01: f32, pub m02: f32, pub m03: f32,
   pub m10: f32, pub m11: f32, pub m12: f32, pub m13: f32,
@@ -23,7 +28,6 @@ impl Matrix4x4 {
         m30: 0.0, m31: 0.0, m32: 0.0, m33: 1.0
     };
 
-    // TODO: Make a vector4 and implement a better constructor
     fn new(c0: Vector4, c1: Vector4, c2: Vector4, c3: Vector4) -> Matrix4x4 {
         Matrix4x4 {
             m00: c0.x, m01: c1.x, m02: c2.x, m03: c3.x,
@@ -40,9 +44,4 @@ impl Matrix4x4 {
     fn make_from_rotation(q: Quaternion) -> Matrix4x4 {
         unimplemented!();
     }
-}
-
-#[cfg(test)]
-mod tests {
-    
 }

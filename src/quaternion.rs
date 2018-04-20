@@ -9,6 +9,7 @@ use Vector3;
 const SIN_45: f32 = 0.8509035;
 const COS_45: f32 = 0.5253219;
 
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct Quaternion {
     pub x: f32,
