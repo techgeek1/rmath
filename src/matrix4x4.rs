@@ -1,5 +1,6 @@
 use std::ops::{ Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign };
 use std::cmp::{ PartialEq, Eq };
+use std::fmt;
 
 use { ApproxEq, Vector4, Quaternion };
 
@@ -43,5 +44,35 @@ impl Matrix4x4 {
 
     fn make_from_rotation(q: Quaternion) -> Matrix4x4 {
         unimplemented!();
+    }
+}
+
+impl fmt::Debug for Matrix4x4 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            "|{}, {}, {}, {}|
+            |{}, {}, {}, {}|
+            |{}, {}, {}, {}|
+            |{}, {}, {}, {}|"
+            m00, m01, m02, m03,
+            m10, m11, m12, m13,
+            m20, m21, m22, m23,
+            m30, m31, m32, m33
+        );
+    }
+}
+
+impl fmt::Display for Matrix4x4 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            "|{}, {}, {}, {}|
+            |{}, {}, {}, {}|
+            |{}, {}, {}, {}|
+            |{}, {}, {}, {}|"
+            m00, m01, m02, m03,
+            m10, m11, m12, m13,
+            m20, m21, m22, m23,
+            m30, m31, m32, m33
+        );
     }
 }
